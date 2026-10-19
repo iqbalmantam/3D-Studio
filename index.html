@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Denah 3D Studio</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0f1419;color:#e6edf3}
+#app{display:flex;height:100vh;height:100dvh}
+#panel{width:340px;flex:none;overflow-y:auto;padding:14px;background:#151b23;border-right:1px solid #263041}
+#view{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden}
+#view canvas{display:block;touch-action:none}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:#8b98a9;font-size:12px;margin:0 0 12px}
+details{border:1px solid #263041;border-radius:10px;margin:0 0 10px;padding:0 10px}
+summary{cursor:pointer;padding:8px 0;color:#9fb0c5;font-size:12px;text-transform:uppercase;letter-spacing:.06em;user-select:none}
+details[open]>summary{margin-bottom:2px}
+details>div,details>.body{padding-bottom:10px}
+label{display:block;margin:8px 0 2px;font-size:13px}
+label .v{float:right;color:#8b98a9;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%}
+input[type=number],input[type=text],select{width:100%;padding:6px 8px;background:#0f1419;color:inherit;border:1px solid #263041;border-radius:6px;font:inherit}
+input[type=color]{width:100%;height:32px;border:1px solid #263041;border-radius:6px;background:#0f1419;padding:2px}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0 0}
+.chk input{margin:0}
+.chk label{margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button,.btn{flex:1;min-width:0;padding:8px 10px;background:#1f2a3a;color:#e6edf3;border:1px solid #2f3d52;border-radius:8px;font:inherit;cursor:pointer;text-align:center}
+button:hover,.btn:hover{background:#27364b}
+button:disabled{opacity:.4;cursor:default}
+.primary{background:#2563eb!important;border-color:#2563eb!important}
+.danger{background:#5b1f27!important;border-color:#7a2a35!important}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tool{padding:7px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}
+.tool span{font-size:18px}
+.tool.active{background:#2563eb;border-color:#2563eb}
+#props{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+#props .full{grid-column:1/-1}
+#props .f label{margin-top:6px}
+.ptitle{font-weight:600;color:#ff9f1c;margin-top:2px}
+.muted{color:#8b98a9;font-size:13px}
+.op{border:1px solid #2a384c;border-radius:8px;padding:2px 8px 8px;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.op .oh{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;color:#9fb0c5}
+.op .oh button{flex:none;padding:2px 8px}
+#stats div{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;color:#b6c2d1}
+.foot{color:#6b7a8d;font-size:12px;margin-top:6px}
+#topbar{position:absolute;top:10px;right:10px;display:flex;gap:6px}
+#topbar button{flex:none;padding:6px 11px;background:rgba(21,27,35,.88)}
+#hint{position:absolute;left:12px;bottom:10px;max-width:calc(100% - 24px);padding:5px 12px;background:rgba(15,20,25,.8);border-radius:999px;color:#9fb0c5;font-size:12px;pointer-events:none}
+#drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(37,99,235,.25);border:3px dashed #2563eb;font-size:20px;pointer-events:none}
+#msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;color:#ffb4b4}
+#floors{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:60%}
+#floors button{flex:none;padding:6px 11px;background:rgba(21,27,35,.88)}
+#floors .on,#btnMulti.on{background:#2563eb!important;border-color:#2563eb!important}
+#welcome{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(15,20,25,.9);z-index:5;overflow:auto}
+.wbox{max-width:420px;width:100%;background:#151b23;border:1px solid #263041;border-radius:14px;padding:18px;text-align:center}
+.wbox h2{margin:0 0 4px;font-size:20px}.wbox button{display:block;width:100%;margin-top:8px;padding:12px;flex:none}
+.wbox ol{text-align:left;color:#9fb0c5;font-size:13px;padding-left:20px;margin:14px 0 0}
+#pad{position:absolute;right:12px;bottom:12px;display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;z-index:3}
+#pad button{padding:0;font-size:20px;touch-action:none;user-select:none;background:rgba(21,27,35,.88)}
+#cap{display:none}
+@media print{#cap{display:block;position:absolute;left:12px;bottom:10px;color:#000;font-size:12px}#pad{display:none!important}
+#panel,#topbar,#floors,#hint,#welcome{display:none!important}#app{display:block;height:auto}#view{height:100vh}}
+@media (max-width:800px){
+  #app{flex-direction:column}
+  #view{order:-1;flex:none;height:55vh;height:55dvh}
+  #panel{width:auto;flex:1;border-right:0;border-top:1px solid #263041}
+  .tools{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>Denah 3D Studio</h1>
+    <p class="sub">Editor denah 3D serbaguna: kantor, rumah, toko, gudang</p>
+
+    <details open>
+      <summary>Alat gambar</summary>
+      <div class="tools" id="tools">
+        <button class="tool" data-tool="select"><span>🖱️</span>Pilih</button>
+        <button class="tool" data-tool="wall"><span>🧱</span>Dinding</button>
+        <button class="tool" data-tool="room"><span>⬜</span>Ruangan</button>
+        <button class="tool" data-tool="pintu"><span>🚪</span>Pintu</button>
+        <button class="tool" data-tool="jendela"><span>🪟</span>Jendela</button>
+        <button class="tool" data-tool="teks"><span>🔤</span>Teks</button>
+        <button class="tool" data-tool="calib"><span>📏</span>Kalibrasi</button>
+        <button class="tool" data-tool="ukur"><span>📐</span>Ukur</button>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Furnitur &amp; objek</summary>
+      <div class="tools" id="furn"></div>
+      <div class="tools" id="myModels" style="margin-top:6px"></div>
+      <div class="row"><label class="btn primary" style="margin:0">🧩 Impor model 3D (.glb)<input id="glbFile" type="file" accept=".glb" hidden></label></div>
+      <div class="foot">Model .glb (mis. dari Sketchfab atau Poly Haven) disimpan di browser ini dan ikut tersimpan di file proyek .json.</div>
+    </details>
+
+    <details open>
+      <summary>Properti objek terpilih</summary>
+      <div id="props"></div>
+    </details>
+
+    <details id="secBg">
+      <summary>Denah gambar (referensi / jiplak)</summary>
+      <div class="body">
+        <div class="row" style="margin-top:0">
+          <label class="btn primary" style="margin:0">Upload gambar<input id="file" type="file" accept="image/*" hidden></label>
+          <button id="btnClearBg">Lepas gambar</button>
+        </div>
+        <label for="lebar">Lebar gambar (meter)</label>
+        <input id="lebar" type="number" min="1" max="2000" step="0.5" value="40">
+        <label for="opas">Opasitas gambar <span class="v" id="vOpas"></span></label>
+        <input id="opas" type="range" min="0.1" max="1" step="0.05" value="0.7">
+        <div class="chk"><input id="showbg" type="checkbox" checked><label for="showbg">Tampilkan gambar</label></div>
+
+        <div id="calibBox" style="display:none;margin-top:8px;padding:8px;border:1px solid #ff9f1c;border-radius:8px">
+          <div id="calibInfo" class="muted"></div>
+          <label for="calibReal">Jarak sebenarnya (meter)</label>
+          <input id="calibReal" type="number" min="0.1" step="0.01">
+          <div class="row"><button id="btnCalibApply" class="primary">Terapkan skala</button><button id="btnCalibCancel">Batal</button></div>
+        </div>
+        <div class="foot">Kalibrasi: pilih alat 📏, klik dua titik di gambar yang jaraknya Anda tahu (misalnya garis "4300cm"), lalu isi jarak sebenarnya.</div>
+
+        <div style="margin-top:12px;font-size:12px;color:#9fb0c5;text-transform:uppercase;letter-spacing:.06em">Deteksi dinding otomatis</div>
+        <label for="metode">Metode</label>
+        <select id="metode">
+          <option value="min">Garis tipis (cocok untuk denah CAD / SketchUp)</option>
+          <option value="avg">Blok tebal (cocok untuk gambar sketsa tebal)</option>
+        </select>
+        <label for="res">Resolusi grid <span class="v" id="vRes"></span></label>
+        <input id="res" type="range" min="80" max="500" step="10" value="280">
+        <label for="thr">Ambang gelap <span class="v" id="vThr"></span></label>
+        <input id="thr" type="range" min="5" max="250" step="1" value="40">
+        <label for="minlen">Panjang minimum objek <span class="v" id="vMinlen"></span></label>
+        <input id="minlen" type="range" min="0.5" max="12" step="0.5" value="3">
+        <div class="chk"><input id="inv" type="checkbox"><label for="inv">Balik (area terang = dinding)</label></div>
+        <div class="row">
+          <button id="btnDetect" class="primary">Deteksi dinding</button>
+          <button id="btnClearAuto">Hapus hasil deteksi</button>
+        </div>
+        <div class="foot">Teks dan garis dimensi dibuang lewat ambang gelap rendah + panjang minimum. Hasil deteksi bisa diedit seperti dinding biasa.</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Pengaturan</summary>
+      <div class="body">
+        <label for="snap">Snap ke grid</label>
+        <select id="snap">
+          <option value="0">Mati</option>
+          <option value="0.05">5 cm</option>
+          <option value="0.1" selected>10 cm</option>
+          <option value="0.25">25 cm</option>
+          <option value="0.5">50 cm</option>
+          <option value="1">1 m</option>
+        </select>
+        <div class="chk"><input id="ortho" type="checkbox" checked><label for="ortho">Kunci dinding lurus (horizontal / vertikal)</label></div>
+        <div class="chk"><input id="shadow" type="checkbox" checked><label for="shadow">Bayangan</label></div>
+        <label for="atap">Atap / plafon (tampilan 3D)</label>
+        <select id="atap"><option value="">Tidak ada</option><option value="datar">Plafon datar</option><option value="pelana">Atap pelana</option></select>
+        <div class="chk"><input id="dims" type="checkbox"><label for="dims">Tampilkan ukuran dinding</label></div>
+        <div class="chk"><input id="showgrid" type="checkbox" checked><label for="showgrid">Tampilkan grid 1 m</label></div>
+        <label for="tebal">Tebal dinding baru (m)</label>
+        <input id="tebal" type="number" min="0.05" max="2" step="0.01" value="0.15">
+        <label for="tinggiDef">Tinggi dinding baru (m)</label>
+        <input id="tinggiDef" type="number" min="0.3" max="30" step="0.1" value="3">
+      </div>
+    </details>
+
+    <details>
+      <summary>Statistik</summary>
+      <div id="stats"></div>
+    </details>
+
+    <details open>
+      <summary>Proyek</summary>
+      <div class="body">
+        <div class="row" style="margin-top:0">
+          <button id="btnSample">Contoh kantor</button>
+          <button id="btnNew">Proyek baru</button>
+        </div>
+        <div class="row">
+          <button id="btnSave">Simpan (.json)</button>
+          <label class="btn" style="margin:0">Buka (.json)<input id="openFile" type="file" accept=".json,application/json" hidden></label>
+        </div>
+        <div class="row">
+          <button id="btnPng">PNG</button>
+          <button id="btnGlb">GLB (3D)</button>
+          <button id="btnCsv">CSV</button>
+          <button id="btnShare">Link</button>
+          <button id="btnPrint">Cetak 2D</button>
+        </div>
+        <div class="foot">Perubahan tersimpan otomatis di browser ini. Pintasan: Del hapus · R putar · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplikat · Esc batal · Enter selesai dinding.</div>
+      </div>
+    </details>
+  <div class="foot" style="text-align:center;margin:8px 0 4px">Developed by iqbalmantam</div>
+  </aside>
+
+  <main id="view">
+    <div id="floors"></div>
+    <div id="topbar">
+      <button id="btnWalk" title="Mode jalan-jalan (first person)">🚶</button>
+      <button id="btnMulti" title="Pilih banyak (atau tahan Shift)">☑</button>
+      <button id="btnUndo" title="Undo (Ctrl+Z)">↶</button>
+      <button id="btnRedo" title="Redo (Ctrl+Y)">↷</button>
+      <button id="btnHelp" title="Bantuan">?</button>
+      <button id="btnView" title="Ganti tampilan">3D</button>
+      <button id="btnFit" title="Tampilkan semua">⤢</button>
+      <button id="btnDone" class="primary" style="display:none">Selesai</button>
+    </div>
+    <div id="welcome"><div class="wbox"><h2>Denah 3D Studio</h2><div class="muted">Mau mulai dari mana?</div>
+<button id="wNew" class="primary">✏️ Denah kosong (gambar dari nol)</button>
+<button id="wImg">🖼️ Upload gambar denah (jiplak)</button>
+<button id="wTpl">🏠 Template rumah sederhana</button>
+<button id="wSample">🏢 Contoh kantor</button>
+<ol><li>Pilih 🧱 Dinding, klik titik demi titik, Enter untuk selesai.</li><li>Tambah 🚪 pintu / 🪟 jendela di dinding, lalu furnitur.</li><li>Tombol 3D di kanan atas untuk ganti 2D/3D.</li></ol></div></div>
+<div id="pad"><button data-k="w" style="grid-area:1/2">▲</button><button data-k="a" style="grid-area:2/1">◀</button><button data-k="s" style="grid-area:2/2">▼</button><button data-k="d" style="grid-area:2/3">▶</button></div>
+<div id="cap"></div>
+<div id="hint"></div>
+    <div id="drop">Lepas gambar denah di sini</div>
+    <div id="msg"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const view = $('view');
+
+  if (typeof THREE === 'undefined' || !THREE.OrbitControls) {
+    const m = $('msg');
+    m.style.display = 'flex';
+    m.textContent = 'Library Three.js gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.';
+    return;
+  }
+
+  // =====================================================================
+  //  Katalog objek
+  // =====================================================================
+  const CAT = {
+    meja:    { n: 'Meja kerja',  e: '🖥️', w: 1.4, d: 0.7,  h: 0.75, c: '#c8a272' },
+    rapat:   { n: 'Meja rapat',  e: '🗣️', w: 2.4, d: 1.1,  h: 0.75, c: '#8d6e4f' },
+    kursi:   { n: 'Kursi',       e: '🪑', w: 0.5, d: 0.5,  h: 0.9,  c: '#374151' },
+    sofa:    { n: 'Sofa',        e: '🛋️', w: 1.8, d: 0.85, h: 0.8,  c: '#5b7db1' },
+    lemari:  { n: 'Lemari',      e: '🗄️', w: 1.0, d: 0.45, h: 1.9,  c: '#a8b0b8' },
+    rak:     { n: 'Rak gudang',  e: '🏗️', w: 2.7, d: 1.1,  h: 4.5,  c: '#2f6fd0' },
+    pallet:  { n: 'Pallet',      e: '🟫', w: 1.2, d: 1.0,  h: 0.15, c: '#b88a52' },
+    boks:    { n: 'Kardus',      e: '📦', w: 0.6, d: 0.5,  h: 0.5,  c: '#c9a46a' },
+    tanaman: { n: 'Tanaman',     e: '🪴', w: 0.5, d: 0.5,  h: 1.1,  c: '#3f8f4f' },
+    tangga:  { n: 'Tangga',      e: '🪜', w: 1.2, d: 3.0,  h: 3.2,  c: '#9aa3ad' },
+    pilar:   { n: 'Pilar',       e: '🏛️', w: 0.4, d: 0.4,  h: 3.0,  c: '#cfd4da' },
+    lubang:  { n: 'Lubang tangga', e: '🕳️', w: 1.2, d: 3.0, h: 0.04, c: '#111827' },
+    kasur:   { n: 'Kasur',       e: '🛏️', w: 1.6, d: 2.0,  h: 0.55, c: '#cbd5e1' },
+    dapur:   { n: 'Kabinet dapur', e: '🍳', w: 2.4, d: 0.6, h: 0.9,  c: '#e5e7eb' },
+    kloset:  { n: 'Kloset',      e: '🚽', w: 0.4, d: 0.7,  h: 0.75, c: '#f8fafc' },
+    wastafel:{ n: 'Wastafel',    e: '🚰', w: 0.6, d: 0.45, h: 0.85, c: '#e2e8f0' },
+    etalase: { n: 'Etalase/kasir', e: '🛒', w: 1.5, d: 0.6, h: 1.1, c: '#93c5fd' },
+    mobil:   { n: 'Mobil',       e: '🚗', w: 1.8, d: 4.2,  h: 1.5,  c: '#ef4444' },
+    kotak:   { n: 'Kotak bebas', e: '⬛', w: 1.0, d: 1.0,  h: 1.0,  c: '#8a94a3' }
+  };
+  const ROOM_COLORS = ['#dbeafe', '#dcfce7', '#fef3c7', '#fce7f3', '#ede9fe', '#ffedd5'];
+
+  // =====================================================================
+  //  Renderer, scene, kamera
+  // =====================================================================
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  view.insertBefore(renderer.domElement, view.firstChild);
+  const dom = renderer.domElement;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f1419);
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
+  const controls = new THREE.OrbitControls(camera, dom);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI / 2 - 0.02;
+
+  scene.add(new THREE.HemisphereLight(0xfff6ea, 0x3b4658, 0.6));
+  const sun = new THREE.DirectionalLight(0xfff2dd, 0.95);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0005;
+  scene.add(sun);
+  scene.add(sun.target);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: 0x1a2230, roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.01;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(200, 200, 0x34465f, 0x222f40);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.7;
+  scene.add(grid);
+
+  const root = new THREE.Group();      // semua objek denah
+  scene.add(root);
+  const helpers = new THREE.Group();   // handle, preview, ghost
+  scene.add(helpers);
+  const bgGroup = new THREE.Group();
+  scene.add(bgGroup);
+
+  const gplane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+
+  // =====================================================================
+  //  State
+  // =====================================================================
+  let objs = [];
+  let nextId = 1;
+  const entries = new Map();     // id -> { o, g }
+  let selId = null;
+  let tool = 'select';
+  let placeKey = null, placeRot = 0;
+  let view2d = false;
+  let chain = null;              // titik terakhir rantai dinding
+  let gest = null;
+  const pointers = new Set();
+  const models = new Map();           // id -> { name, buf, tpl, size }
+  const extra = new Set();            // pilihan tambahan (multi-select)
+  let lastQ = null, numBuf = '', walk = false, lastT = 0, saved = null;
+  const wk = {};
+  let multiMode = false, curLv = 0, nLv = 1;
+  const FH = 3.2;                      // tinggi antar lantai (m)
+  const lvOf = o => o.lv || 0;
+  const undoS = [], redoS = [];
+  const bg = { loaded: false, mesh: null, tex: null };
+  const src = document.createElement('canvas');
+  src.width = 4; src.height = 4;
+  let ghost = null;
+  const ghostPos = { x: 0, z: 0 };
+  let calib = { pts: [], marks: [], measured: 0 };
+  let hintTimer = null;
+
+  const fmt = v => Math.round(v * 100) / 100;
+  const snapV = v => { const s = +$('snap').value; return s > 0 ? Math.round(v / s) * s : v; };
+
+  // =====================================================================
+  //  Pembangun geometri objek
+  // =====================================================================
+  function mat(c, opts) {
+    return new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.75, metalness: 0.05 }, opts || {}));
+  }
+  function shade(c, f) { return new THREE.Color(c).multiplyScalar(f); }
+
+  function textPlane(text, size, color) {
+    const px = 128;
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    ctx.font = 'bold ' + px + 'px system-ui, sans-serif';
+    const tw = Math.max(20, ctx.measureText(text || ' ').width);
+    c.width = Math.ceil(tw + 40);
+    c.height = Math.ceil(px * 1.4);
+    const x = c.getContext('2d');
+    x.font = 'bold ' + px + 'px system-ui, sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.fillStyle = color;
+    x.fillText(text || ' ', c.width / 2, c.height / 2);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4; tex.encoding = THREE.sRGBEncoding;
+    const m = new THREE.MeshBasicMaterial({ toneMapped: false, map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * c.width / c.height, size), m);
+    mesh.rotation.x = -Math.PI / 2;
+    return mesh;
+  }
+
+  let _wood = null;
+  function woodTex() {
+    if (_wood) return _wood;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 70; i++) {
+      x.strokeStyle = 'rgba(90,60,30,' + (0.05 + Math.random() * 0.12) + ')'; x.lineWidth = 1 + Math.random() * 2;
+      const y = Math.random() * 256; x.beginPath(); x.moveTo(0, y);
+      x.bezierCurveTo(80, y + Math.random() * 10 - 5, 170, y + Math.random() * 10 - 5, 256, y + Math.random() * 6 - 3); x.stroke();
+    }
+    _wood = new THREE.CanvasTexture(c); _wood.wrapS = _wood.wrapT = THREE.RepeatWrapping; _wood.encoding = THREE.sRGBEncoding; _wood.anisotropy = 4;
+    return _wood;
+  }
+  function floorTex(o, w, d) {
+    if (!o.mat) return undefined;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 128, 128);
+    x.strokeStyle = o.mat === 'beton' ? '#e5e5e5' : '#9ca3af'; x.lineWidth = 2;
+    if (o.mat === 'kayu') { for (let i = 0; i < 5; i++) { const y = i * 25.6; x.strokeRect(-2, y, 132, 25.6); x.beginPath(); x.moveTo((i % 2) * 64 + 40, y); x.lineTo((i % 2) * 64 + 40, y + 25.6); x.stroke(); } }
+    else if (o.mat === 'keramik') { x.strokeRect(0, 0, 128, 128); x.beginPath(); x.moveTo(64, 0); x.lineTo(64, 128); x.moveTo(0, 64); x.lineTo(128, 64); x.stroke(); }
+    else { for (let i = 0; i < 400; i++) { x.fillStyle = 'rgba(0,0,0,' + Math.random() * 0.08 + ')'; x.fillRect(Math.random() * 128, Math.random() * 128, 2, 2); } }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding;
+    t.repeat.set(Math.max(1, w / (o.mat === 'kayu' ? 1.5 : 1)), Math.max(1, d / (o.mat === 'kayu' ? 1.5 : 1)));
+    return { map: t };
+  }
+
+  function buildGroup(o, ghostMode) {
+    const g = new THREE.Group();
+    const mats = [];
+    const M = (c, opts) => {
+      const m = mat(c, opts);
+      if (ghostMode) { m.transparent = true; m.opacity = 0.5; }
+      mats.push(m);
+      return m;
+    };
+    const add = (mesh, px, py, pz) => {
+      mesh.position.set(px, py, pz);
+      mesh.castShadow = !ghostMode;
+      mesh.receiveShadow = true;
+      mesh.userData.id = o.id;
+      g.add(mesh);
+      return mesh;
+    };
+    const box = (sx, sy, sz, px, py, pz, m) => add(new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m), px, py, pz);
+    const dark = () => M('#4b5563');
+    const cyl = (rt, rb, hh, px, py, pz, m, rx, rz) => { const c = add(new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 20), m), px, py, pz); if (rx) c.rotation.x = rx; if (rz) c.rotation.z = rz; return c; };
+    const sph = (rx, ry, rz, px, py, pz, m) => { const e = add(new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), m), px, py, pz); e.scale.set(rx, ry, rz); return e; };
+
+    if (o.type === 'wall') {
+      const dx = o.x2 - o.x1, dz = o.z2 - o.z1, L = Math.hypot(dx, dz);
+      g.position.set((o.x1 + o.x2) / 2, 0, (o.z1 + o.z2) / 2);
+      g.rotation.y = -Math.atan2(dz, dx);
+      const wm = M(o.color), wm2 = o.c2 ? M(o.c2) : null, fr = M('#f8fafc', { roughness: 0.5 });
+      const gl = M('#9ad7ff', { transparent: true, opacity: 0.35, roughness: 0.1 });
+      const dm = M('#8a5a2b');
+      const ext = o.t / 2;
+      const seg = (a, b, y0, y1, m, th) => {
+        if (b - a < 1e-4 || y1 - y0 < 1e-4) return;
+        box(b - a, y1 - y0, th || o.t, (a + b) / 2 - L / 2, (y0 + y1) / 2, 0, (m === wm && wm2) ? [wm, wm, wm, wm, wm, wm2] : m);
+      };
+      const ops = (o.op || []).map(p => ({ p: p, a: Math.max(0, p.s - p.w / 2), b: Math.min(L, p.s + p.w / 2) }))
+        .filter(q => q.b - q.a > 0.05).sort((u, v) => u.a - v.a);
+      let cur = -ext;
+      ops.forEach(q => {
+        const a = Math.max(q.a, cur);
+        if (q.b <= a) return;
+        seg(cur, a, 0, o.h, wm); seg(cur, a, 0, 0.09, fr, o.t + 0.02);
+        const door = q.p.k === 'pintu';
+        const y0 = door ? 0 : (q.p.sill != null ? q.p.sill : 0.9);
+        const y1 = Math.min(o.h, y0 + (q.p.hh || (door ? 2.1 : 1.2)));
+        seg(a, q.b, y1, o.h, wm);
+        if (door) seg(a, q.b, 0, y1, dm, 0.04);
+        else { seg(a, q.b, 0, y0, wm); seg(a, q.b, y0, y1, gl, 0.03); }
+        { const ft = 0.05, tt = o.t + 0.04, mid = (a + q.b) / 2;
+          seg(a, a + ft, y0, y1, fr, tt); seg(q.b - ft, q.b, y0, y1, fr, tt); seg(a, q.b, y1 - ft, y1, fr, tt);
+          if (door) box(0.12, 0.025, o.t + 0.1, q.b - 0.14 - L / 2, 1.0, 0, M('#a1a1aa', { metalness: 0.9, roughness: 0.25 }));
+          else { seg(a, q.b, y0, y0 + ft, fr, tt + 0.06); seg(mid - 0.015, mid + 0.015, y0, y1, fr, 0.04); } }
+        cur = q.b;
+      });
+      seg(cur, L + ext, 0, o.h, wm); seg(cur, L + ext, 0, 0.09, fr, o.t + 0.02);
+    } else if (o.type === 'room') {
+      const w = Math.abs(o.x2 - o.x1), d = Math.abs(o.z2 - o.z1);
+      g.position.set((o.x1 + o.x2) / 2, 0, (o.z1 + o.z2) / 2);
+      box(w, 0.03, d, 0, 0.015, 0, M(o.color, floorTex(o, w, d)));
+      {
+        const tp = textPlane((o.label ? o.label + " · " : "") + fmt(w * d) + " m²", o.ls || 0.7, '#1f2937');
+        const maxW = Math.max(0.5, w * 0.9);
+        const tw = tp.geometry.parameters.width;
+        if (tw > maxW) tp.scale.setScalar(maxW / tw);
+        tp.position.y = 0.036;
+        tp.userData.id = o.id;
+        g.add(tp);
+      }
+    } else if (o.type === 'teks') {
+      g.position.set(o.x, 0, o.z);
+      g.rotation.y = o.rot * Math.PI / 180;
+      const tp = textPlane(o.text, o.size || 0.6, o.color);
+      tp.position.y = 0.02;
+      tp.userData.id = o.id;
+      g.add(tp);
+    } else {
+      g.position.set(o.x, 0, o.z);
+      g.rotation.y = o.rot * Math.PI / 180;
+      const w = o.w, d = o.d, h = o.h;
+      switch (CAT[o.type] && CAT[o.type].model ? '__model' : o.type) {
+        case '__model': {
+          const t = models.get(CAT[o.type].model);
+          if (!t) { box(w, h, d, 0, h / 2, 0, M('#94a3b8', { transparent: true, opacity: 0.5 })); break; }
+          const inst = t.tpl.clone(true);
+          inst.scale.set(w / t.size.x, h / t.size.y, d / t.size.z);
+          inst.traverse(n => {
+            if (!n.isMesh) return;
+            n.material = Array.isArray(n.material) ? n.material.map(x => x.clone()) : n.material.clone();
+            (Array.isArray(n.material) ? n.material : [n.material]).forEach(x => { if (ghostMode) { x.transparent = true; x.opacity = 0.5; } mats.push(x); });
+            n.castShadow = !ghostMode; n.receiveShadow = true; n.userData.id = o.id;
+          });
+          g.add(inst);
+          break;
+        }
+        case 'meja': case 'rapat': {
+          const top = 0.035, lh = h - top, wd = M(o.color, { map: woodTex(), roughness: 0.55 }), mt = M('#2b2f36', { metalness: 0.6, roughness: 0.4 });
+          box(w, top, d, 0, h - top / 2, 0, wd);
+          if (o.type === 'rapat') {
+            [-1, 1].forEach(i => box(0.08, lh, d * 0.7, i * (w / 2 - 0.5), lh / 2, 0, mt));
+            box(w * 0.6, 0.05, 0.04, 0, h - 0.2, 0, mt);
+          } else {
+            [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(q => box(0.04, lh, 0.04, q[0] * (w / 2 - 0.04), lh / 2, q[1] * (d / 2 - 0.04), mt));
+            box(0.4, 0.5, d - 0.1, w / 2 - 0.25, h - top - 0.27, 0, wd);
+            [0.12, -0.12].forEach(dy => box(0.14, 0.015, 0.015, w / 2 - 0.25, h - top - 0.27 + dy, d / 2 - 0.045, mt));
+            box(w - 0.5, 0.3, 0.015, -0.15, h - top - 0.2, -d / 2 + 0.04, wd);
+            if (w >= 1.2) {
+              box(0.5, 0.3, 0.02, -w * 0.15, h + 0.28, -d * 0.25, M('#111827', { roughness: 0.3 }));
+              box(0.04, 0.12, 0.04, -w * 0.15, h + 0.06, -d * 0.25, mt);
+              box(0.4, 0.015, 0.14, -w * 0.15, h + 0.008, d * 0.12, M('#1f2937'));
+            }
+          }
+          break;
+        }
+        case 'kursi': {
+          const fm = M(o.color, { roughness: 0.9 }), mt = M('#1f2937', { metalness: 0.5, roughness: 0.4 }), sh = h * 0.5, L = Math.min(w, d) * 0.5;
+          cyl(0.025, 0.025, sh - 0.1, 0, (sh - 0.1) / 2 + 0.06, 0, mt);
+          for (let i = 0; i < 5; i++) {
+            const a = i * Math.PI * 2 / 5;
+            box(L, 0.03, 0.04, Math.cos(a) * L / 2, 0.07, Math.sin(a) * L / 2, mt).rotation.y = -a;
+            cyl(0.025, 0.025, 0.03, Math.cos(a) * L, 0.025, Math.sin(a) * L, mt, 0, Math.PI / 2);
+          }
+          sph(w * 0.5, 0.05, d * 0.5, 0, sh, 0, fm);
+          box(w * 0.9, h - sh - 0.08, 0.05, 0, sh + (h - sh) / 2, -d / 2 + 0.04, fm).rotation.x = -0.12;
+          [-1, 1].forEach(i => { box(0.03, 0.2, 0.03, i * (w / 2 - 0.02), sh + 0.1, 0, mt); box(0.06, 0.025, 0.25, i * (w / 2 - 0.02), sh + 0.21, 0, mt); });
+          break;
+        }
+        case 'sofa': {
+          const cm = M(o.color, { roughness: 0.95 }), am = M(shade(o.color, 0.9), { roughness: 0.95 }), aw = w * 0.1, sh = h * 0.42, iw = w - aw * 2, n = w > 1.6 ? 3 : 2, cw = iw / n;
+          [-1, 1].forEach(i => { box(0.05, 0.12, 0.05, i * (w / 2 - 0.1), 0.06, d / 2 - 0.1, dark()); box(0.05, 0.12, 0.05, i * (w / 2 - 0.1), 0.06, -d / 2 + 0.1, dark()); });
+          box(iw, sh - 0.12, d * 0.9, 0, 0.12 + (sh - 0.12) / 2, 0.02, am);
+          for (let i = 0; i < n; i++) {
+            const cx = -iw / 2 + cw * (i + 0.5);
+            sph(cw / 2 * 0.98, 0.11, d * 0.42, cx, sh + 0.02, d * 0.06, cm);
+            sph(cw / 2 * 0.95, (h - sh) * 0.5, 0.12, cx, sh + (h - sh) * 0.5, -d / 2 + 0.2, cm).rotation.x = -0.18;
+          }
+          [-1, 1].forEach(i => { box(aw, h * 0.62 - 0.12, d * 0.95, i * (w / 2 - aw / 2), 0.12 + (h * 0.62 - 0.12) / 2, 0, am); cyl(aw / 2, aw / 2, d * 0.95, i * (w / 2 - aw / 2), h * 0.62, 0, am, Math.PI / 2); });
+          break;
+        }
+        case 'lemari': {
+          const bm = M(o.color, { map: woodTex(), roughness: 0.6 }), hm = M('#4b5563', { metalness: 0.7, roughness: 0.3 }), n = w > 0.8 ? 2 : 1, dw = w / n;
+          box(w, h - 0.08, d, 0, 0.08 + (h - 0.08) / 2, 0, bm);
+          box(w - 0.04, 0.08, d - 0.04, 0, 0.04, -0.01, M('#2b2f36'));
+          for (let i = 0; i < n; i++) {
+            box(dw - 0.012, h - 0.16, 0.018, -w / 2 + dw * (i + 0.5), 0.08 + (h - 0.16) / 2 + 0.04, d / 2 + 0.004, M(shade(o.color, 1.08), { roughness: 0.55 }));
+            box(0.012, 0.16, 0.02, -w / 2 + dw * i + (i === 0 ? dw - 0.04 : 0.04), h * 0.55, d / 2 + 0.02, hm);
+          }
+          break;
+        }
+        case 'rak': {
+          const n = Math.max(2, Math.round(h / 1.5)), um = M(o.color), bm = M('#f59e0b'), sm = M('#d1d5db');
+          [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(s => box(0.07, h, 0.07, s[0] * (w / 2 - 0.035), h / 2, s[1] * (d / 2 - 0.035), um));
+          for (let l = 0; l < n; l++) {
+            const y = 0.2 + l * (h - 0.35) / Math.max(1, n - 1);
+            box(w - 0.14, 0.1, 0.05, 0, y, d / 2 - 0.035, bm);
+            box(w - 0.14, 0.1, 0.05, 0, y, -(d / 2 - 0.035), bm);
+            box(w - 0.14, 0.03, d - 0.1, 0, y + 0.065, 0, sm);
+          }
+          break;
+        }
+        case 'pallet': {
+          const wm = M(o.color), dk = 0.025;
+          box(w, dk, d, 0, h - dk / 2, 0, wm);
+          [-1, 0, 1].forEach(i => box(w, h - dk, 0.1, 0, (h - dk) / 2, i * (d / 2 - 0.05), wm));
+          break;
+        }
+        case 'boks': {
+          box(w, h, d, 0, h / 2, 0, M(o.color));
+          box(w * 0.12, 0.006, d, 0, h + 0.002, 0, M(shade(o.color, 0.75)));
+          break;
+        }
+        case 'tanaman': {
+          const r = Math.min(w, d) / 2, lm = M(o.color, { roughness: 0.8 });
+          cyl(r * 0.75, r * 0.55, h * 0.28, 0, h * 0.14, 0, M('#8b5e3c', { roughness: 0.9 }));
+          cyl(r * 0.7, r * 0.7, 0.02, 0, h * 0.28, 0, M('#3b2a1a'));
+          cyl(0.012, 0.012, h * 0.5, 0, h * 0.5, 0, M('#5b7f3a'));
+          for (let i = 0; i < 9; i++) {
+            const a = i * 2.4, rr = r * (0.25 + 0.6 * ((i % 3) / 2)), l = sph(r * 0.35, h * 0.1, r * 0.2, Math.cos(a) * rr, h * (0.45 + 0.12 * (i % 4)), Math.sin(a) * rr, lm);
+            l.rotation.y = -a; l.rotation.z = 0.5;
+          }
+          break;
+        }
+        case 'kasur': {
+          const fm = M('#6b4f3a', { map: woodTex() }), mt = M('#f1f5f9', { roughness: 0.95 }), dv = M(o.color, { roughness: 0.95 });
+          [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(q => box(0.07, 0.15, 0.07, q[0] * (w / 2 - 0.05), 0.075, q[1] * (d / 2 - 0.05), fm));
+          box(w, 0.12, d, 0, 0.21, 0, fm);
+          box(w - 0.06, 0.2, d - 0.06, 0, 0.37, 0, mt);
+          box(w - 0.02, 0.1, d * 0.65, 0, 0.44, d * 0.16, dv);
+          box(w + 0.06, h * 1.5, 0.07, 0, h * 0.75, -d / 2 - 0.02, fm);
+          [-1, 1].forEach(i => sph(w * 0.2, 0.07, 0.2, i * w * 0.24, 0.5, -d / 2 + 0.3, M('#ffffff', { roughness: 0.95 })));
+          break;
+        }
+        case 'kloset': {
+          const pm = M(o.color, { roughness: 0.2, metalness: 0.1 });
+          cyl(w * 0.28, w * 0.34, h * 0.4, 0, h * 0.2, d * 0.12, pm);
+          sph(w * 0.5, h * 0.12, d * 0.34, 0, h * 0.5, d * 0.14, pm);
+          sph(w * 0.46, 0.015, d * 0.33, 0, h * 0.6, d * 0.15, M('#eef2f7', { roughness: 0.3 }));
+          box(w * 0.9, h * 0.5, d * 0.2, 0, h * 0.7, -d / 2 + d * 0.1, pm);
+          cyl(0.025, 0.025, 0.015, 0, h * 0.96, -d / 2 + d * 0.1, M('#9ca3af', { metalness: 0.8, roughness: 0.3 }));
+          break;
+        }
+        case 'mobil': {
+          const bm = M(o.color, { metalness: 0.6, roughness: 0.3 }), gm = M('#9ad7ff', { transparent: true, opacity: 0.55, metalness: 0.8, roughness: 0.05 }), tm = M('#111827', { roughness: 0.9 });
+          box(w, h * 0.32, d, 0, h * 0.32, 0, bm);
+          box(w * 0.92, h * 0.3, d * 0.5, 0, h * 0.64, -d * 0.04, gm);
+          box(w * 0.9, 0.04, d * 0.46, 0, h * 0.8, -d * 0.04, bm);
+          [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(q => cyl(h * 0.2, h * 0.2, 0.22, q[0] * (w / 2 - 0.1), h * 0.2, q[1] * d * 0.32, tm, 0, Math.PI / 2));
+          [-1, 1].forEach(i => { box(0.25, 0.08, 0.03, i * (w / 2 - 0.3), h * 0.36, d / 2 + 0.01, M('#fef9c3', { emissive: 0x555533 })); box(0.25, 0.08, 0.03, i * (w / 2 - 0.3), h * 0.36, -d / 2 - 0.01, M('#b91c1c')); });
+          break;
+        }
+        case 'tangga': {
+          const n = Math.max(3, Math.round(h / 0.18)), sd = d / n, sm = M(o.color);
+          for (let i = 0; i < n; i++) {
+            const sh = h * (i + 1) / n;
+            box(w, sh, sd, 0, sh / 2, -d / 2 + sd * (i + 0.5), sm);
+          }
+          break;
+        }
+        case 'wastafel': {
+          const cm = M('#f8fafc', { roughness: 0.2 }), ch = M('#d1d5db', { metalness: 0.9, roughness: 0.15 });
+          box(w, h * 0.8, d, 0, h * 0.4, 0, M(o.color, { roughness: 0.5 }));
+          box(w + 0.02, 0.03, d + 0.02, 0, h * 0.8 + 0.015, 0, cm);
+          sph(w * 0.3, 0.04, d * 0.3, 0, h * 0.8 + 0.03, 0.02, M('#e5e7eb', { roughness: 0.2 }));
+          cyl(0.012, 0.012, 0.15, 0, h * 0.8 + 0.1, -d / 2 + 0.08, ch);
+          box(0.015, 0.015, 0.1, 0, h * 0.8 + 0.17, -d / 2 + 0.13, ch);
+          box(w * 0.8, 0.5, 0.015, 0, h + 0.3, -d / 2 + 0.01, M('#cfe8f5', { metalness: 0.9, roughness: 0.05 }));
+          break;
+        }
+        case 'dapur': {
+          const n = Math.max(2, Math.round(w / 0.6)), hm = M('#9ca3af', { metalness: 0.8, roughness: 0.3 });
+          box(w, h - 0.04, d, 0, (h - 0.04) / 2, 0, M(o.color));
+          box(w + 0.02, 0.04, d + 0.03, 0, h - 0.02, 0.01, M('#374151', { roughness: 0.3, metalness: 0.2 }));
+          for (let i = 0; i < n; i++) { const cx = -w / 2 + w / n * (i + 0.5); box(w / n - 0.01, h - 0.14, 0.015, cx, (h - 0.04) / 2 + 0.03, d / 2 + 0.005, M(shade(o.color, 0.93))); box(0.1, 0.012, 0.015, cx, h * 0.8, d / 2 + 0.02, hm); }
+          if (w >= 1.2) [[0, -0.12], [0.25, -0.12], [0, 0.12], [0.25, 0.12]].forEach(q => cyl(0.08, 0.08, 0.01, w / 2 - 0.4 + q[0], h + 0.006, q[1], M('#111827')));
+          break;
+        }
+        case 'etalase': {
+          box(w, h * 0.45, d, 0, h * 0.225, 0, M(o.color, { roughness: 0.5 }));
+          box(w - 0.04, h * 0.5, d - 0.04, 0, h * 0.45 + h * 0.25, 0, M('#bfe3ff', { transparent: true, opacity: 0.35, metalness: 0.6, roughness: 0.05 }));
+          box(w, 0.03, d, 0, h - 0.015, 0, M('#1f2937', { roughness: 0.4 }));
+          break;
+        }
+        default:
+          box(w, h, d, 0, h / 2, 0, M(o.color));
+      }
+    }
+    g.mats = mats;   // sengaja bukan userData agar tidak ikut diserialisasi saat ekspor GLB
+    return g;
+  }
+
+  function disposeGroup(g) {
+    g.traverse(n => {
+      if (n.geometry) n.geometry.dispose();
+      if (n.material) {
+        if (n.material.map) n.material.map.dispose();
+        n.material.dispose();
+      }
+    });
+  }
+
+  function addObjGroup(o) {
+    const g = buildGroup(o, false);
+    g.position.y = lvOf(o) * FH;
+    g.visible = lvOf(o) <= curLv && (!view2d || lvOf(o) === curLv);
+    root.add(g);
+    entries.set(o.id, { o: o, g: g });
+    if (o.id === selId || extra.has(o.id)) setHL(o.id, true);
+  }
+  function removeObjGroup(id) {
+    const e = entries.get(id);
+    if (!e) return;
+    root.remove(e.g);
+    disposeGroup(e.g);
+    entries.delete(id);
+  }
+  function rebuildObj(o) { removeObjGroup(o.id); addObjGroup(o); }
+  function rebuildAll() {
+    Array.from(entries.keys()).forEach(removeObjGroup);
+    objs.forEach(addObjGroup);
+  }
+  function setHL(id, on) {
+    const e = entries.get(id);
+    if (!e) return;
+    e.g.mats.forEach(m => { if (m.emissive) m.emissive.setHex(on ? 0x4a2a00 : 0x000000); });
+  }
+
+  // =====================================================================
+  //  Objek: pembuat & utilitas
+  // =====================================================================
+  function makeWall(x1, z1, x2, z2, op) {
+    return { id: nextId++, type: 'wall', x1: x1, z1: z1, x2: x2, z2: z2,
+      t: +$('tebal').value || 0.15, h: +$('tinggiDef').value || 3, color: '#e8e4dc', op: op || [] };
+  }
+  function makeRoom(x1, z1, x2, z2, color, label) {
+    return { id: nextId++, type: 'room', x1: x1, z1: z1, x2: x2, z2: z2, color: color, label: label, ls: 0.7 };
+  }
+  function makeFurn(key, x, z, rot) {
+    const c = CAT[key];
+    return { id: nextId++, type: key, x: x, z: z, rot: rot || 0, w: c.w, d: c.d, h: c.h, color: c.c };
+  }
+  function addObj(o) { if (o.lv === undefined) o.lv = curLv; objs.push(o); addObjGroup(o); return o; }
+  function typeName(o) {
+    if (o.type === 'wall') return 'Dinding';
+    if (o.type === 'room') return 'Ruangan';
+    if (o.type === 'teks') return 'Teks';
+    return CAT[o.type] ? CAT[o.type].n : o.type;
+  }
+  function wallLen(o) { return Math.hypot(o.x2 - o.x1, o.z2 - o.z1); }
+
+  // =====================================================================
+  //  Riwayat, simpan otomatis
+  // =====================================================================
+  function snapshot() { return JSON.stringify({ objs: objs, nextId: nextId }); }
+  function syncUndo() {
+    $('btnUndo').disabled = !undoS.length;
+    $('btnRedo').disabled = !redoS.length;
+  }
+  function pushHistory() {
+    undoS.push(snapshot());
+    if (undoS.length > 80) undoS.shift();
+    redoS.length = 0;
+    syncUndo();
+    scheduleAutosave();
+  }
+  function restore(s) {
+    const d = JSON.parse(s);
+    objs = d.objs;
+    nextId = d.nextId;
+    const keep = selId;
+    selId = null;
+    rebuildAll();
+    select(keep !== null && entries.has(keep) ? keep : null);
+    updateStats();
+    scheduleSun();
+    scheduleAutosave();
+  }
+  function undo() { if (!undoS.length) return; redoS.push(snapshot()); restore(undoS.pop()); syncUndo(); }
+  function redo() { if (!redoS.length) return; undoS.push(snapshot()); restore(redoS.pop()); syncUndo(); }
+
+  let asTimer = null;
+  function scheduleAutosave() {
+    clearTimeout(asTimer);
+    asTimer = setTimeout(() => {
+      try { localStorage.setItem('denah3d-v2', snapshot()); } catch (e) { /* abaikan */ }
+    }, 1500);
+  }
+
+  // =====================================================================
+  //  Seleksi & handle
+  // =====================================================================
+  const handleGroup = new THREE.Group();
+  helpers.add(handleGroup);
+  const hMat = new THREE.MeshBasicMaterial({ color: 0xffd166, depthTest: false, transparent: true });
+
+  function handlePoints(o) {
+    if (o.type === 'wall') return [[o.x1, o.z1, o.h + 0.3], [o.x2, o.z2, o.h + 0.3]];
+    if (o.type === 'room') return [[o.x1, o.z1, 0.4], [o.x2, o.z1, 0.4], [o.x2, o.z2, 0.4], [o.x1, o.z2, 0.4]];
+    return [];
+  }
+  function updateHandles() {
+    while (handleGroup.children.length) {
+      const c = handleGroup.children.pop();
+      c.geometry.dispose();
+    }
+    if (selId === null || !entries.has(selId)) return;
+    handlePoints(entries.get(selId).o).forEach((p, i) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), hMat);
+      m.position.set(p[0], p[2] + lvOf(entries.get(selId).o) * FH, p[1]);
+      m.renderOrder = 999;
+      m.userData.handle = i;
+      handleGroup.add(m);
+    });
+  }
+  function select(id) {
+    extra.forEach(i => setHL(i, false)); extra.clear();
+    if (selId !== null) setHL(selId, false);
+    selId = (id !== null && id !== undefined && entries.has(id)) ? id : null;
+    if (selId !== null) setHL(selId, true);
+    updateHandles();
+    renderProps();
+  }
+
+  // =====================================================================
+  //  Panel properti
+  // =====================================================================
+  function commit(o, fn) {
+    pushHistory();
+    fn();
+    rebuildObj(o);
+    updateHandles();
+    renderProps();
+    updateStats();
+    scheduleSun();
+  }
+
+  function renderProps() {
+    const box = $('props');
+    box.innerHTML = '';
+    const el = (cls, tag) => { const d = document.createElement(tag || 'div'); d.className = cls || ''; return d; };
+    if (selId === null || !entries.has(selId)) {
+      const d = el('muted full');
+      d.textContent = 'Tidak ada objek terpilih. Klik objek di tampilan untuk mengeditnya.';
+      box.appendChild(d);
+      return;
+    }
+    const o = entries.get(selId).o;
+    const title = el('full ptitle');
+    title.textContent = typeName(o) + ' #' + o.id;
+    box.appendChild(title);
+
+    const field = (parent, label, input, full) => {
+      const w = el('f' + (full ? ' full' : ''));
+      const l = document.createElement('label');
+      l.textContent = label;
+      w.appendChild(l);
+      w.appendChild(input);
+      parent.appendChild(w);
+    };
+    const num = (parent, label, val, min, max, step, cb, full) => {
+      const i = document.createElement('input');
+      i.type = 'number'; i.min = min; i.max = max; i.step = step; i.value = fmt(val);
+      i.addEventListener('change', () => {
+        let v = parseFloat(i.value);
+        if (isNaN(v)) { i.value = fmt(val); return; }
+        v = Math.min(max, Math.max(min, v));
+        commit(o, () => cb(v));
+      });
+      field(parent, label, i, full);
+    };
+    const txt = (parent, label, val, cb) => {
+      const i = document.createElement('input');
+      i.type = 'text'; i.value = val;
+      i.addEventListener('change', () => commit(o, () => cb(i.value)));
+      field(parent, label, i, true);
+    };
+    const col = (parent, label, val, cb) => {
+      const i = document.createElement('input');
+      i.type = 'color'; i.value = val;
+      i.addEventListener('change', () => commit(o, () => cb(i.value)));
+      field(parent, label, i, false);
+    };
+    const btn = (parent, label, cb, cls) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      if (cls) b.className = cls;
+      b.addEventListener('click', cb);
+      return b;
+    };
+
+    if (o.type === 'wall') {
+      const L = wallLen(o);
+      num(box, 'Panjang (m)', L, 0.1, 500, 0.05, v => {
+        const dx = o.x2 - o.x1, dz = o.z2 - o.z1, l = Math.hypot(dx, dz);
+        const ux = l > 1e-4 ? dx / l : 1, uz = l > 1e-4 ? dz / l : 0;
+        o.x2 = o.x1 + ux * v; o.z2 = o.z1 + uz * v;
+      });
+      num(box, 'Tebal (m)', o.t, 0.05, 2, 0.01, v => { o.t = v; });
+      num(box, 'Tinggi (m)', o.h, 0.3, 30, 0.1, v => { o.h = v; });
+      col(box, 'Warna sisi A', o.color, v => { o.color = v; });
+      col(box, 'Warna sisi B', o.c2 || o.color, v => { o.c2 = v; });
+      (o.op || []).forEach((p, i) => {
+        const op = el('op full');
+        const head = el('oh');
+        const nm = document.createElement('span');
+        nm.textContent = (p.k === 'pintu' ? 'Pintu ' : 'Jendela ') + (i + 1);
+        head.appendChild(nm);
+        head.appendChild(btn(head, 'Hapus', () => commit(o, () => o.op.splice(i, 1)), 'danger'));
+        op.appendChild(head);
+        num(op, 'Posisi (m)', p.s, 0, 500, 0.05, v => { p.s = v; });
+        num(op, 'Lebar (m)', p.w, 0.3, 20, 0.05, v => { p.w = v; });
+        if (p.k === 'jendela') {
+          num(op, 'Ambang (m)', p.sill != null ? p.sill : 0.9, 0, 10, 0.05, v => { p.sill = v; });
+          num(op, 'Tinggi (m)', p.hh || 1.2, 0.2, 10, 0.05, v => { p.hh = v; });
+        } else {
+          num(op, 'Tinggi (m)', p.hh || 2.1, 0.5, 10, 0.05, v => { p.hh = v; });
+        }
+        box.appendChild(op);
+      });
+      const r1 = el('row full');
+      r1.appendChild(btn(r1, '+ Pintu', () => commit(o, () => o.op.push({ k: 'pintu', s: wallLen(o) / 2, w: 0.9, hh: 2.1 }))));
+      r1.appendChild(btn(r1, '+ Jendela', () => commit(o, () => o.op.push({ k: 'jendela', s: wallLen(o) / 2, w: 1.2, sill: 0.9, hh: 1.2 }))));
+      box.appendChild(r1);
+      const r2 = el('row full');
+      r2.appendChild(btn(r2, 'Samakan tebal & tinggi ke semua dinding', () => {
+        pushHistory();
+        objs.forEach(w => { if (w.type === 'wall') { w.t = o.t; w.h = o.h; rebuildObj(w); } });
+        updateHandles(); renderProps();
+      }));
+      box.appendChild(r2);
+    } else if (o.type === 'room') {
+      txt(box, 'Nama ruangan', o.label || '', v => { o.label = v; });
+      num(box, 'Ukuran teks (m)', o.ls || 0.7, 0.2, 5, 0.1, v => { o.ls = v; });
+      col(box, 'Warna lantai', o.color, v => { o.color = v; });
+      const ms = document.createElement('select');
+      [['', 'Polos'], ['kayu', 'Kayu'], ['keramik', 'Keramik'], ['beton', 'Beton']].forEach(a => { const op = document.createElement('option'); op.value = a[0]; op.textContent = a[1]; ms.appendChild(op); });
+      ms.value = o.mat || '';
+      ms.addEventListener('change', () => commit(o, () => { o.mat = ms.value; }));
+      field(box, 'Material lantai', ms, false);
+      num(box, 'Lebar (m)', Math.abs(o.x2 - o.x1), 0.3, 500, 0.05, v => { o.x2 = o.x1 + (o.x2 >= o.x1 ? 1 : -1) * v; });
+      num(box, 'Dalam (m)', Math.abs(o.z2 - o.z1), 0.3, 500, 0.05, v => { o.z2 = o.z1 + (o.z2 >= o.z1 ? 1 : -1) * v; });
+    } else if (o.type === 'teks') {
+      txt(box, 'Teks', o.text, v => { o.text = v; });
+      num(box, 'Ukuran (m)', o.size, 0.2, 10, 0.1, v => { o.size = v; });
+      num(box, 'Rotasi (°)', o.rot, 0, 359, 5, v => { o.rot = v; });
+      col(box, 'Warna', o.color, v => { o.color = v; });
+      num(box, 'X (m)', o.x, -1000, 1000, 0.05, v => { o.x = v; });
+      num(box, 'Z (m)', o.z, -1000, 1000, 0.05, v => { o.z = v; });
+    } else {
+      num(box, 'Lebar (m)', o.w, 0.05, 100, 0.05, v => { o.w = v; });
+      num(box, 'Dalam (m)', o.d, 0.05, 100, 0.05, v => { o.d = v; });
+      num(box, 'Tinggi (m)', o.h, 0.02, 50, 0.05, v => { o.h = v; });
+      num(box, 'Rotasi (°)', o.rot, 0, 359, 5, v => { o.rot = v; });
+      num(box, 'X (m)', o.x, -1000, 1000, 0.05, v => { o.x = v; });
+      num(box, 'Z (m)', o.z, -1000, 1000, 0.05, v => { o.z = v; });
+      col(box, 'Warna', o.color, v => { o.color = v; });
+    }
+    const rb = el('row full');
+    if (o.type !== 'wall' && o.type !== 'room') rb.appendChild(btn(rb, 'Putar 90°', () => rotateSel(90)));
+    rb.appendChild(btn(rb, 'Duplikat', duplicateSel));
+    rb.appendChild(btn(rb, 'Hapus', deleteSel, 'danger'));
+    box.appendChild(rb);
+  }
+
+  function deleteSel() {
+    if (selId === null) return;
+    pushHistory();
+    const ids = [selId].concat(Array.from(extra));
+    select(null);
+    objs = objs.filter(o => ids.indexOf(o.id) < 0);
+    ids.forEach(removeObjGroup);
+    updateStats(); scheduleSun();
+  }
+  function duplicateSel() {
+    if (selId === null) return;
+    const src0 = entries.get(selId).o, exIds = Array.from(extra);
+    pushHistory();
+    const c = JSON.parse(JSON.stringify(src0));
+    c.id = nextId++;
+    delete c.auto;
+    const off = 0.6;
+    if (c.type === 'wall' || c.type === 'room') { c.x1 += off; c.x2 += off; c.z1 += off; c.z2 += off; }
+    else { c.x += off; c.z += off; }
+    addObj(c);
+    select(c.id);
+    exIds.forEach(i => {
+      const d2 = JSON.parse(JSON.stringify(entries.get(i).o));
+      d2.id = nextId++; delete d2.auto;
+      if (d2.type === 'wall' || d2.type === 'room') { d2.x1 += off; d2.x2 += off; d2.z1 += off; d2.z2 += off; } else { d2.x += off; d2.z += off; }
+      addObj(d2); extra.add(d2.id); setHL(d2.id, true);
+    });
+    updateStats(); scheduleSun();
+  }
+  function rotateGroup(deg) {
+    const ids = [selId].concat(Array.from(extra)), os = ids.map(i => entries.get(i).o);
+    const ctr = o => (o.type === 'wall' || o.type === 'room') ? [(o.x1 + o.x2) / 2, (o.z1 + o.z2) / 2] : [o.x, o.z];
+    let cx = 0, cz = 0;
+    os.forEach(o => { const c = ctr(o); cx += c[0]; cz += c[1]; });
+    cx /= os.length; cz /= os.length;
+    const a = deg * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+    const rp = (x, z) => [cx + (x - cx) * co + (z - cz) * si, cz - (x - cx) * si + (z - cz) * co];
+    pushHistory();
+    os.forEach(o => {
+      if (o.type === 'wall' || o.type === 'room') {
+        const p = rp(o.x1, o.z1), q = rp(o.x2, o.z2);
+        o.x1 = fmt(p[0]); o.z1 = fmt(p[1]); o.x2 = fmt(q[0]); o.z2 = fmt(q[1]);
+      } else { const p = rp(o.x, o.z); o.x = fmt(p[0]); o.z = fmt(p[1]); o.rot = ((o.rot || 0) + deg) % 360; }
+      rebuildObj(o);
+    });
+    updateHandles(); updateStats(); scheduleSun();
+  }
+  function rotateSel(deg) {
+    if (extra.size && selId !== null) { rotateGroup(deg); return; }
+    if (selId === null) return;
+    const o = entries.get(selId).o;
+    if (o.type === 'wall' || o.type === 'room') return;
+    pushHistory();
+    o.rot = ((o.rot || 0) + deg) % 360;
+    rebuildObj(o);
+    renderProps();
+  }
+
+  // =====================================================================
+  //  Statistik, matahari, kamera
+  // =====================================================================
+  function promote(id) { if (selId !== null) extra.add(selId); extra.delete(id); selId = id; updateHandles(); renderProps(); }
+  function toggleMulti(h) {
+    if (h.id === selId) {
+      setHL(h.id, false);
+      const n = Array.from(extra)[0];
+      if (n === undefined) selId = null; else { extra.delete(n); selId = n; }
+      updateHandles(); renderProps();
+    } else if (extra.has(h.id)) { extra.delete(h.id); setHL(h.id, false); }
+    else if (selId === null) select(h.id);
+    else { extra.add(h.id); setHL(h.id, true); }
+    const n = (selId === null ? 0 : 1) + extra.size;
+    setHint(n ? n + ' objek dipilih · seret untuk pindah · Del hapus · Ctrl+D duplikat' : '');
+  }
+  function applyLv() {
+    updateRoof();
+    entries.forEach(e => { const l = lvOf(e.o); e.g.visible = l <= curLv && (!view2d || l === curLv); });
+  }
+  function setLv(n) { curLv = n; select(null); applyLv(); renderFloors(); updateDims(); }
+  function copyLv() {
+    const to = curLv + 1;
+    if (objs.some(o => lvOf(o) === to) && !confirm('Lt.' + (to + 1) + ' sudah berisi. Tetap salin (ditumpuk)?')) return;
+    pushHistory();
+    objs.filter(o => lvOf(o) === curLv).forEach(o => { const c = JSON.parse(JSON.stringify(o)); c.id = nextId++; delete c.auto; c.lv = to; objs.push(c); });
+    nLv = Math.max(nLv, to + 1);
+    rebuildAll(); setLv(to); updateStats(); scheduleSun(); scheduleAutosave();
+    flash('Isi Lt.' + to + ' disalin ke Lt.' + (to + 1));
+  }
+  function delLv() {
+    if (nLv < 2 || !confirm('Hapus Lt.' + (curLv + 1) + ' beserta seluruh isinya?')) return;
+    pushHistory();
+    const L = curLv;
+    objs = objs.filter(o => lvOf(o) !== L);
+    objs.forEach(o => { if (lvOf(o) > L) o.lv = lvOf(o) - 1; });
+    nLv--; curLv = Math.min(curLv, nLv - 1);
+    select(null); rebuildAll(); updateStats(); scheduleSun(); scheduleAutosave();
+  }
+  function renderFloors() {
+    nLv = Math.max(nLv, curLv + 1, objs.reduce((m, o) => Math.max(m, lvOf(o) + 1), 1));
+    const f = $('floors');
+    f.innerHTML = '';
+    for (let i = 0; i < nLv; i++) {
+      const b = document.createElement('button');
+      b.textContent = 'Lt.' + (i + 1);
+      if (i === curLv) b.className = 'on';
+      b.onclick = () => setLv(i);
+      f.appendChild(b);
+    }
+    const p = document.createElement('button');
+    if (nLv > 1) { const x = document.createElement('button'); x.textContent = '🗑'; x.title = 'Hapus lantai ini'; x.onclick = delLv; f.appendChild(x); }
+    { const c = document.createElement('button'); c.textContent = '⧉'; c.title = 'Salin isi lantai ini ke lantai berikutnya'; c.onclick = copyLv; f.appendChild(c); }
+    p.textContent = '+'; p.title = 'Tambah lantai';
+    p.onclick = () => { nLv++; setLv(nLv - 1); flash('Lantai ' + nLv + ' ditambahkan. Lantai di bawahnya tetap terlihat sebagai acuan.'); };
+    f.appendChild(p);
+  }
+  let meas = [];
+  const measGroup = new THREE.Group();
+  scene.add(measGroup);
+  function clearMeas() { while (measGroup.children.length) disposeGroup(measGroup.children.pop()); meas = []; }
+  function addMeas(p) {
+    if (meas.length >= 2) clearMeas();
+    const q = wallPoint(p);
+    meas.push(q);
+    if (meas.length === 1) { setPrevLine(q, q); flash('Klik titik kedua.'); return; }
+    hidePreviews();
+    const a = meas[0], L = Math.hypot(q.x - a.x, q.z - a.z);
+    const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x, 0.08, a.z), new THREE.Vector3(q.x, 0.08, q.z)]), new THREE.LineBasicMaterial({ color: 0xff9f1c, depthTest: false }));
+    ln.renderOrder = 997; measGroup.add(ln);
+    const g = new THREE.Group(), tp = textPlane(fmt(L) + ' m', 0.4, '#ff9f1c');
+    tp.material.depthTest = false; tp.renderOrder = 997; g.add(tp);
+    g.position.set((a.x + q.x) / 2, 0.1, (a.z + q.z) / 2 + 0.35); measGroup.add(g);
+    flash('Jarak ' + fmt(L) + ' m (Δx ' + fmt(Math.abs(q.x - a.x)) + ', Δz ' + fmt(Math.abs(q.z - a.z)) + ')');
+  }
+  const roofGroup = new THREE.Group();
+  scene.add(roofGroup);
+  function updateRoof() {
+    while (roofGroup.children.length) disposeGroup(roofGroup.children.pop());
+    const m = $('atap').value;
+    if (!m || view2d || walk) return;
+    const top = objs.reduce((a, o) => Math.max(a, lvOf(o)), 0);
+    if (curLv < top) return;
+    const y = top * FH + (+$('tinggiDef').value || 3);
+    const sel = objs.filter(o => lvOf(o) === top && (o.type === 'wall' || o.type === 'room'));
+    if (!sel.length) return;
+    const ms = new THREE.MeshStandardMaterial({ color: m === 'datar' ? '#e5e7eb' : '#b45f3c', roughness: 0.8, side: THREE.DoubleSide });
+    if (m === 'datar') {
+      sel.filter(o => o.type === 'room').forEach(o => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(o.x2 - o.x1), 0.1, Math.abs(o.z2 - o.z1)), ms);
+        b.position.set((o.x1 + o.x2) / 2, y + 0.05, (o.z1 + o.z2) / 2); roofGroup.add(b);
+      });
+      return;
+    }
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    sel.forEach(o => { x0 = Math.min(x0, o.x1, o.x2); x1 = Math.max(x1, o.x1, o.x2); z0 = Math.min(z0, o.z1, o.z2); z1 = Math.max(z1, o.z1, o.z2); });
+    const ov = 0.5, W = x1 - x0 + ov * 2, D = z1 - z0 + ov * 2, alongX = W >= D, len = alongX ? W : D, span = alongX ? D : W;
+    const sh = new THREE.Shape();
+    sh.moveTo(-span / 2, 0); sh.lineTo(span / 2, 0); sh.lineTo(0, span * 0.3); sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: len, bevelEnabled: false });
+    geo.translate(0, 0, -len / 2);
+    const r = new THREE.Mesh(geo, ms);
+    r.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+    if (alongX) r.rotation.y = Math.PI / 2;
+    roofGroup.add(r);
+  }
+  const dimGroup = new THREE.Group();
+  scene.add(dimGroup);
+  function updateDims() {
+    while (dimGroup.children.length) { const c = dimGroup.children.pop(); disposeGroup(c); }
+    if (!$('dims').checked) return;
+    objs.forEach(o => {
+      if (o.type !== 'wall' || lvOf(o) !== curLv) return;
+      const dx = o.x2 - o.x1, dz = o.z2 - o.z1, L = Math.hypot(dx, dz);
+      if (L < 0.3) return;
+      let ang = -Math.atan2(dz, dx);
+      if (Math.cos(ang) < 0) ang += Math.PI;
+      const g = new THREE.Group(), tp = textPlane(fmt(L) + ' m', 0.3, '#d97706');
+      g.add(tp);
+      g.rotation.y = ang;
+      g.position.set((o.x1 + o.x2) / 2 + (-dz / L) * (o.t / 2 + 0.25), 0.05 + curLv * FH, (o.z1 + o.z2) / 2 + (dx / L) * (o.t / 2 + 0.25));
+      dimGroup.add(g);
+    });
+  }
+  function updateStats() {
+    renderFloors(); updateDims(); updateRoof();
+    let nw = 0, lw = 0, nr = 0, ar = 0, nf = 0, nop = 0;
+    objs.forEach(o => {
+      if (o.type === 'wall') { nw++; lw += wallLen(o); nop += (o.op || []).length; }
+      else if (o.type === 'room') { nr++; ar += Math.abs(o.x2 - o.x1) * Math.abs(o.z2 - o.z1); }
+      else if (o.type !== 'teks') nf++;
+    });
+    const rows = [
+      ['Dinding', nw + ' (' + lw.toFixed(1) + ' m)'],
+      ['Pintu & jendela', String(nop)],
+      ['Ruangan', nr + ' (' + ar.toFixed(0) + ' m²)'],
+      ['Furnitur & objek', String(nf)]
+    ];
+    $('stats').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+  }
+
+  function bounds() {
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    const ext = (x, z) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); };
+    objs.forEach(o => {
+      if (o.type === 'wall' || o.type === 'room') { ext(o.x1, o.z1); ext(o.x2, o.z2); }
+      else { ext(o.x - 1, o.z - 1); ext(o.x + 1, o.z + 1); }
+    });
+    if (bg.loaded) { const w = bgW(), h = bgH(); ext(-w / 2, -h / 2); ext(w / 2, h / 2); }
+    if (x0 > x1) { x0 = -10; x1 = 10; z0 = -8; z1 = 8; }
+    return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, big: Math.max(x1 - x0, z1 - z0, 8) };
+  }
+  let sunTimer = null;
+  function scheduleSun() { clearTimeout(sunTimer); sunTimer = setTimeout(updateSun, 60); }
+  function updateSun() {
+    const b = bounds();
+    sun.position.set(b.cx + b.big * 0.5, b.big * 1.2, b.cz + b.big * 0.4);
+    sun.target.position.set(b.cx, 0, b.cz);
+    sun.target.updateMatrixWorld();
+    const s = sun.shadow.camera, r = b.big * 0.8;
+    s.left = -r; s.right = r; s.top = r; s.bottom = -r; s.near = 0.5; s.far = b.big * 4;
+    s.updateProjectionMatrix();
+  }
+  function fitCamera() {
+    const b = bounds();
+    controls.target.set(b.cx, 0, b.cz);
+    if (view2d) camera.position.set(b.cx, b.big * 1.15, b.cz + 0.001);
+    else camera.position.set(b.cx, b.big * 0.85, b.cz + b.big * 0.9);
+    controls.update();
+  }
+  function setView2D(on) {
+    setTimeout(applyLv, 0);
+    view2d = on;
+    const t = controls.target, dist = Math.max(5, camera.position.distanceTo(t));
+    if (on) {
+      controls.enableRotate = false;
+      controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      if (controls.touches) controls.touches.ONE = THREE.TOUCH.PAN;
+      camera.position.set(t.x, t.y + dist, t.z + 0.001);
+    } else {
+      controls.enableRotate = true;
+      controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      if (controls.touches) controls.touches.ONE = THREE.TOUCH.ROTATE;
+      camera.position.set(t.x, t.y + dist * 0.75, t.z + dist * 0.65);
+    }
+    controls.update();
+    $('btnView').textContent = on ? '2D' : '3D';
+  }
+
+  // =====================================================================
+  //  Gambar referensi & deteksi dinding
+  // =====================================================================
+  const bgW = () => Math.max(1, +$('lebar').value || 40);
+  const bgH = () => bgW() * src.height / src.width;
+
+  function updateBg() {
+    if (bg.mesh) { bgGroup.remove(bg.mesh); bg.mesh.geometry.dispose(); bg.mesh.material.dispose(); bg.mesh = null; }
+    if (bg.tex) { bg.tex.dispose(); bg.tex = null; }
+    if (!bg.loaded) return;
+    bg.tex = new THREE.CanvasTexture(src);
+    bg.tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const m = new THREE.MeshBasicMaterial({ map: bg.tex, transparent: true, opacity: +$('opas').value, depthWrite: false });
+    bg.mesh = new THREE.Mesh(new THREE.PlaneGeometry(bgW(), bgH()), m);
+    bg.mesh.rotation.x = -Math.PI / 2;
+    bg.mesh.position.y = 0.004;
+    bg.mesh.visible = $('showbg').checked;
+    bgGroup.add(bg.mesh);
+  }
+  function setSource(img) {
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    if (!w || !h) return;
+    const k = Math.min(1, 2000 / Math.max(w, h));
+    src.width = Math.max(1, Math.round(w * k));
+    src.height = Math.max(1, Math.round(h * k));
+    const c = src.getContext('2d');
+    c.fillStyle = '#fff';
+    c.fillRect(0, 0, src.width, src.height);
+    c.drawImage(img, 0, 0, src.width, src.height);
+    bg.loaded = true;
+    updateBg();
+    fitCamera();
+    scheduleSun();
+    flash('Gambar dimuat. Kalibrasi skala (📏) lalu jiplak dinding atau pakai deteksi otomatis.');
+  }
+  function loadImageFile(file) {
+    if (!file || file.type.indexOf('image/') !== 0) return;
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => { setSource(im); URL.revokeObjectURL(url); };
+    im.onerror = () => URL.revokeObjectURL(url);
+    im.src = url;
+  }
+  function clearBg() {
+    bg.loaded = false;
+    updateBg();
+    scheduleSun();
+  }
+
+  function mergeRects(g, W, H) {
+    const rects = [];
+    let active = new Map();
+    for (let y = 0; y <= H; y++) {
+      const next = new Map();
+      if (y < H) {
+        let x = 0;
+        while (x < W) {
+          if (g[y * W + x]) {
+            const x0 = x;
+            while (x < W && g[y * W + x]) x++;
+            const key = x0 + ',' + (x - x0);
+            const prev = active.get(key);
+            if (prev) { prev.h++; next.set(key, prev); active.delete(key); }
+            else { const r = { x: x0, y: y, w: x - x0, h: 1 }; rects.push(r); next.set(key, r); }
+          } else x++;
+        }
+      }
+      active = next;
+    }
+    return rects;
+  }
+
+  function detectWalls() {
+    if (!bg.loaded) { flash('Upload gambar denah dulu.'); return; }
+    const cols = +$('res').value, tw = bgW();
+    const rows = Math.max(1, Math.round(cols * src.height / src.width));
+    const cs = tw / cols, td = cs * rows;
+    const thr = +$('thr').value;
+    const grid = new Uint8Array(cols * rows);
+
+    if ($('metode').value === 'min') {
+      const sd = src.getContext('2d').getImageData(0, 0, src.width, src.height).data;
+      const sw = src.width, sh = src.height;
+      const mn = new Float32Array(cols * rows).fill(255);
+      for (let y = 0; y < sh; y++) {
+        const cy = Math.min(rows - 1, Math.floor(y * rows / sh));
+        for (let x = 0; x < sw; x++) {
+          const cx = Math.min(cols - 1, Math.floor(x * cols / sw));
+          const i = (y * sw + x) * 4;
+          const l = 0.299 * sd[i] + 0.587 * sd[i + 1] + 0.114 * sd[i + 2];
+          const k = cy * cols + cx;
+          if (l < mn[k]) mn[k] = l;
+        }
+      }
+      for (let k = 0; k < grid.length; k++) grid[k] = mn[k] < thr ? 1 : 0;
+    } else {
+      const c = document.createElement('canvas');
+      c.width = cols; c.height = rows;
+      const x = c.getContext('2d', { willReadFrequently: true });
+      x.fillStyle = '#fff'; x.fillRect(0, 0, cols, rows);
+      x.drawImage(src, 0, 0, cols, rows);
+      const d = x.getImageData(0, 0, cols, rows).data;
+      for (let k = 0; k < grid.length; k++) {
+        grid[k] = (0.299 * d[k * 4] + 0.587 * d[k * 4 + 1] + 0.114 * d[k * 4 + 2]) < thr ? 1 : 0;
+      }
+    }
+    if ($('inv').checked) for (let k = 0; k < grid.length; k++) grid[k] = grid[k] ? 0 : 1;
+
+    // buang objek kecil (teks, bintik) berdasarkan panjang terpanjang
+    const minCells = Math.max(1, Math.ceil(+$('minlen').value / cs));
+    const seen = new Uint8Array(grid.length), q = new Int32Array(grid.length), out = new Uint8Array(grid.length);
+    for (let s = 0; s < grid.length; s++) {
+      if (!grid[s] || seen[s]) continue;
+      let head = 0, tail = 0, minx = cols, maxx = 0, miny = rows, maxy = 0;
+      q[tail++] = s; seen[s] = 1;
+      while (head < tail) {
+        const c = q[head++], cx = c % cols, cy = (c - cx) / cols;
+        if (cx < minx) minx = cx; if (cx > maxx) maxx = cx;
+        if (cy < miny) miny = cy; if (cy > maxy) maxy = cy;
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = cy + dy;
+          if (ny < 0 || ny >= rows) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = cx + dx;
+            if (nx < 0 || nx >= cols || (!dx && !dy)) continue;
+            const n = ny * cols + nx;
+            if (grid[n] && !seen[n]) { seen[n] = 1; q[tail++] = n; }
+          }
+        }
+      }
+      if (Math.max(maxx - minx + 1, maxy - miny + 1) >= minCells) for (let i = 0; i < tail; i++) out[q[i]] = 1;
+    }
+
+    const rects = mergeRects(out, cols, rows);
+    if (!rects.length) { flash('Tidak ada dinding terdeteksi. Naikkan ambang gelap atau kecilkan panjang minimum.'); return; }
+    if (rects.length > 4000) { flash('Terlalu banyak potongan (' + rects.length + '). Turunkan resolusi atau naikkan panjang minimum.'); return; }
+
+    pushHistory();
+    select(null);
+    objs.filter(o => o.auto).forEach(o => removeObjGroup(o.id));
+    objs = objs.filter(o => !o.auto);
+    const hh = +$('tinggiDef').value || 3;
+    rects.forEach(r => {
+      const t = Math.max(0.08, Math.min(r.w, r.h) * cs);
+      const X0 = r.x * cs - tw / 2, Z0 = r.y * cs - td / 2;
+      let w;
+      if (r.w >= r.h) {
+        const zc = Z0 + r.h * cs / 2;
+        w = makeWall(X0 + t / 2, zc, X0 + r.w * cs - t / 2, zc);
+      } else {
+        const xc = X0 + r.w * cs / 2;
+        w = makeWall(xc, Z0 + t / 2, xc, Z0 + r.h * cs - t / 2);
+      }
+      w.t = t; w.h = hh; w.auto = true;
+      addObj(w);
+    });
+    updateStats(); scheduleSun();
+    flash(rects.length + ' potongan dinding dibuat. Hapus yang tidak perlu atau tambah pintu/jendela.');
+  }
+  function clearAuto() {
+    if (!objs.some(o => o.auto)) { flash('Tidak ada hasil deteksi.'); return; }
+    pushHistory();
+    select(null);
+    objs.filter(o => o.auto).forEach(o => removeObjGroup(o.id));
+    objs = objs.filter(o => !o.auto);
+    updateStats(); scheduleSun();
+  }
+
+  // =====================================================================
+  //  Kalibrasi
+  // =====================================================================
+  function clearCalib() {
+    calib.marks.forEach(m => { helpers.remove(m); m.geometry.dispose(); });
+    calib = { pts: [], marks: [], measured: 0 };
+    $('calibBox').style.display = 'none';
+  }
+  function addCalibPoint(p) {
+    if (calib.pts.length >= 2) clearCalib();
+    calib.pts.push(p.clone());
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff4d4d, depthTest: false }));
+    m.position.set(p.x, 0.3, p.z);
+    m.renderOrder = 999;
+    helpers.add(m);
+    calib.marks.push(m);
+    if (calib.pts.length === 2) {
+      calib.measured = calib.pts[0].distanceTo(calib.pts[1]);
+      $('calibInfo').textContent = 'Jarak terukur saat ini: ' + calib.measured.toFixed(2) + ' m';
+      $('calibReal').value = fmt(calib.measured);
+      $('calibBox').style.display = 'block';
+      $('secBg').open = true;
+      $('calibReal').focus();
+    }
+  }
+  function applyCalib() {
+    const real = parseFloat($('calibReal').value);
+    if (!(real > 0) || !(calib.measured > 0)) return;
+    const f = real / calib.measured;
+    $('lebar').value = fmt(bgW() * f);
+    updateBg();
+    if (objs.some(o => o.auto)) {
+      if (confirm('Skala berubah. Dinding hasil deteksi dibuat ulang sesuai skala baru?')) detectWalls();
+    }
+    clearCalib();
+    fitCamera();
+    scheduleSun();
+    flash('Skala diterapkan: lebar gambar ' + $('lebar').value + ' m.');
+  }
+
+  // =====================================================================
+  //  Pointer / interaksi
+  // =====================================================================
+  const prevLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineBasicMaterial({ color: 0xffd166, depthTest: false }));
+  prevLine.renderOrder = 998; prevLine.visible = false; prevLine.frustumCulled = false;
+  helpers.add(prevLine);
+  const prevRect = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineBasicMaterial({ color: 0xffd166, depthTest: false }));
+  prevRect.renderOrder = 998; prevRect.visible = false; prevRect.frustumCulled = false;
+  helpers.add(prevRect);
+
+  function setPrevLine(a, b) {
+    const pa = prevLine.geometry.attributes.position;
+    pa.setXYZ(0, a.x, 0.06, a.z); pa.setXYZ(1, b.x, 0.06, b.z);
+    pa.needsUpdate = true;
+    prevLine.visible = true;
+  }
+  function setPrevRect(a, b) {
+    const pa = prevRect.geometry.attributes.position;
+    pa.setXYZ(0, a.x, 0.06, a.z); pa.setXYZ(1, b.x, 0.06, a.z);
+    pa.setXYZ(2, b.x, 0.06, b.z); pa.setXYZ(3, a.x, 0.06, b.z);
+    pa.needsUpdate = true;
+    prevRect.visible = true;
+  }
+  function hidePreviews() { prevLine.visible = false; prevRect.visible = false; }
+
+  function setRay(e) {
+    const b = dom.getBoundingClientRect();
+    ndc.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+  }
+  function groundAt(e) {
+    setRay(e);
+    const v = new THREE.Vector3();
+    return ray.ray.intersectPlane(gplane, v) ? v : null;
+  }
+  function pickObj(e, filter) {
+    setRay(e);
+    const hits = ray.intersectObjects(root.children, true);
+    for (let i = 0; i < hits.length; i++) {
+      const id = hits[i].object.userData.id;
+      if (id === undefined) continue;
+      const en = entries.get(id);
+      if (!en || lvOf(en.o) !== curLv) continue;
+      if (filter && !filter(en.o)) continue;
+      return { id: id, o: en.o, point: hits[i].point };
+    }
+    return null;
+  }
+  function pickHandle(e) {
+    if (!handleGroup.children.length) return -1;
+    setRay(e);
+    const hits = ray.intersectObjects(handleGroup.children, false);
+    return hits.length ? hits[0].object.userData.handle : -1;
+  }
+
+  function wallPoint(p) {
+    let x = snapV(p.x), z = snapV(p.z);
+    if (chain && $('ortho').checked) {
+      if (Math.abs(x - chain.x) >= Math.abs(z - chain.z)) z = chain.z; else x = chain.x;
+    }
+    let best = null, bd = 0.25;
+    objs.forEach(o => {
+      if (o.type !== 'wall' || lvOf(o) !== curLv) return;
+      [[o.x1, o.z1], [o.x2, o.z2]].forEach(pt => {
+        const d = Math.hypot(pt[0] - x, pt[1] - z);
+        if (d < bd) { bd = d; best = pt; }
+      });
+    });
+    if (best) { x = best[0]; z = best[1]; }
+    return { x: x, z: z };
+  }
+
+  function finishChain() {
+    chain = null; numBuf = '';
+    hidePreviews();
+    $('btnDone').style.display = 'none';
+  }
+  function cancelGesture() {
+    gest = null;
+    controls.enabled = true;
+    hidePreviews();
+    if (chain) setPrevLine(chain, chain);
+  }
+
+  function snapshotPos(o) {
+    return { x: o.x, z: o.z, x1: o.x1, z1: o.z1, x2: o.x2, z2: o.z2 };
+  }
+
+  function addOpening(kind, e) {
+    const hit = pickObj(e, o => o.type === 'wall');
+    if (!hit) { flash('Klik tepat pada dinding.'); return; }
+    const o = hit.o, L = wallLen(o);
+    const w = kind === 'pintu' ? 0.9 : 1.2;
+    if (L < w + 0.1) { flash('Dinding terlalu pendek untuk ' + kind + '.'); return; }
+    const dx = o.x2 - o.x1, dz = o.z2 - o.z1;
+    let s = ((hit.point.x - o.x1) * dx + (hit.point.z - o.z1) * dz) / L;
+    s = Math.min(L - w / 2, Math.max(w / 2, snapV(s)));
+    pushHistory();
+    o.op = o.op || [];
+    o.op.push(kind === 'pintu' ? { k: 'pintu', s: s, w: w, hh: 2.1 } : { k: 'jendela', s: s, w: w, sill: 0.9, hh: 1.2 });
+    rebuildObj(o);
+    select(o.id);
+    updateStats();
+  }
+
+  view.addEventListener('pointerdown', onDown, true);
+  function onDown(e) {
+    if (e.target !== dom) return;
+    if (e.pointerType === 'mouse') pointers.clear();
+    pointers.add(e.pointerId);
+    if (pointers.size > 1) { cancelGesture(); return; }
+    if (e.button !== 0) return;
+    const p = groundAt(e);
+
+    if (tool === 'select') {
+      const hi = pickHandle(e);
+      if (hi >= 0 && selId !== null) {
+        gest = { k: 'handle', idx: hi, moved: false };
+        controls.enabled = false;
+        return;
+      }
+      const hit = pickObj(e);
+      if (hit && (multiMode || e.shiftKey)) { toggleMulti(hit); return; }
+      if (hit && extra.has(hit.id)) promote(hit.id);
+      if (hit) {
+        const immediate = hit.o.type !== 'room' || hit.id === selId;
+        if (immediate) {
+          if (hit.id !== selId) select(hit.id);
+          gest = { k: 'move', id: hit.id, start: p ? { x: p.x, z: p.z } : { x: 0, z: 0 }, orig: snapshotPos(hit.o), moved: false, ex: Array.from(extra).map(i => ({ o: entries.get(i).o, g: snapshotPos(entries.get(i).o) })) };
+          controls.enabled = false;
+        } else {
+          gest = { k: 'maybe', id: hit.id, sx: e.clientX, sy: e.clientY };
+        }
+      } else if (multiMode || e.shiftKey) {
+        if (p) { gest = { k: 'box', a: { x: p.x, z: p.z }, b: null }; controls.enabled = false; }
+      } else {
+        gest = { k: 'maybe', id: null, sx: e.clientX, sy: e.clientY };
+      }
+      return;
+    }
+
+    if (!p) return;
+    controls.enabled = false;
+    gest = { k: 'tool' };
+
+    if (tool === 'wall') {
+      const q = wallPoint(p);
+      if (!chain) {
+        chain = { x: q.x, z: q.z };
+        setPrevLine(q, q);
+        $('btnDone').style.display = '';
+      } else if (Math.hypot(q.x - chain.x, q.z - chain.z) < 0.05) {
+        finishChain();
+      } else {
+        pushHistory();
+        addObj(makeWall(chain.x, chain.z, q.x, q.z));
+        chain = { x: q.x, z: q.z };
+        setPrevLine(chain, chain);
+        updateStats(); scheduleSun();
+      }
+    } else if (tool === 'room') {
+      gest = { k: 'room', a: { x: snapV(p.x), z: snapV(p.z) }, b: null };
+    } else if (tool === 'pintu' || tool === 'jendela') {
+      addOpening(tool, e);
+    } else if (tool === 'teks') {
+      pushHistory();
+      const o = addObj({ id: nextId++, type: 'teks', x: snapV(p.x), z: snapV(p.z), rot: 0, text: 'Teks', size: 0.6, color: '#e5e7eb' });
+      select(o.id);
+      setTool('select');
+    } else if (tool === 'ukur') {
+      addMeas(p);
+    } else if (tool === 'calib') {
+      addCalibPoint(p);
+    } else if (tool === 'place' && placeKey) {
+      pushHistory();
+      const o = addObj(makeFurn(placeKey, snapV(p.x), snapV(p.z), placeRot));
+      select(o.id);
+      updateStats(); scheduleSun();
+    }
+  }
+
+  window.addEventListener('pointermove', onMove);
+  function onMove(e) {
+    const onCanvas = e.target === dom;
+    if (!gest && !onCanvas) return;
+    const p = (gest || onCanvas) ? groundAt(e) : null;
+    if (!p) return;
+
+    if (gest) {
+      if (gest.k === 'move') {
+        const o = entries.get(gest.id).o;
+        const dx = snapV(p.x - gest.start.x), dz = snapV(p.z - gest.start.z);
+        if (!gest.moved) {
+          if (Math.abs(dx) < 1e-6 && Math.abs(dz) < 1e-6) return;
+          gest.moved = true;
+          pushHistory();
+        }
+        const g = gest.orig;
+        if (o.type === 'wall' || o.type === 'room') { o.x1 = g.x1 + dx; o.x2 = g.x2 + dx; o.z1 = g.z1 + dz; o.z2 = g.z2 + dz; }
+        else { o.x = g.x + dx; o.z = g.z + dz; }
+        if (!gest.ex.length && o.type !== 'wall' && o.type !== 'room') {
+          let gx = null, gz = null;
+          objs.forEach(t => {
+            if (t === o || lvOf(t) !== curLv) return;
+            const c = (t.type === 'wall' || t.type === 'room') ? [(t.x1 + t.x2) / 2, (t.z1 + t.z2) / 2] : [t.x, t.z];
+            if (gx === null && Math.abs(c[0] - o.x) < 0.12) gx = c;
+            if (gz === null && Math.abs(c[1] - o.z) < 0.12) gz = c;
+          });
+          if (gx) { o.x = gx[0]; setPrevLine({ x: gx[0], z: o.z }, { x: gx[0], z: gx[1] }); }
+          else if (gz) { o.z = gz[1]; setPrevLine({ x: o.x, z: gz[1] }, { x: gz[0], z: gz[1] }); }
+          else hidePreviews();
+        }
+        rebuildObj(o);
+        (gest.ex || []).forEach(q => {
+          const t = q.o, h = q.g;
+          if (t.type === 'wall' || t.type === 'room') { t.x1 = h.x1 + dx; t.x2 = h.x2 + dx; t.z1 = h.z1 + dz; t.z2 = h.z2 + dz; }
+          else { t.x = h.x + dx; t.z = h.z + dz; }
+          rebuildObj(t);
+        });
+        updateHandles();
+      } else if (gest.k === 'handle') {
+        const o = entries.get(selId).o;
+        let q = { x: snapV(p.x), z: snapV(p.z) };
+        if (o.type === 'wall') q = wallPointFor(o, gest.idx, p);
+        if (!gest.moved) { gest.moved = true; pushHistory(); }
+        if (o.type === 'wall') {
+          if (gest.idx === 0) { o.x1 = q.x; o.z1 = q.z; } else { o.x2 = q.x; o.z2 = q.z; }
+        } else {
+          const i = gest.idx;
+          if (i === 0) { o.x1 = q.x; o.z1 = q.z; }
+          else if (i === 1) { o.x2 = q.x; o.z1 = q.z; }
+          else if (i === 2) { o.x2 = q.x; o.z2 = q.z; }
+          else { o.x1 = q.x; o.z2 = q.z; }
+        }
+        rebuildObj(o);
+        updateHandles();
+      } else if (gest.k === 'box') {
+        gest.b = { x: p.x, z: p.z }; setPrevRect(gest.a, gest.b);
+      } else if (gest.k === 'room') {
+        gest.b = { x: snapV(p.x), z: snapV(p.z) };
+        setPrevRect(gest.a, gest.b);
+        setHint('Ruangan ' + Math.abs(gest.b.x - gest.a.x).toFixed(2) + ' × ' + Math.abs(gest.b.z - gest.a.z).toFixed(2) + ' m');
+      }
+      return;
+    }
+
+    // hover
+    if (tool === 'wall') {
+      const q = wallPoint(p);
+      lastQ = q;
+      if (chain) {
+        setPrevLine(chain, q);
+        setHint('Panjang ' + Math.hypot(q.x - chain.x, q.z - chain.z).toFixed(2) + ' m · klik untuk lanjut, dobel klik / Enter untuk selesai');
+      }
+    } else if (tool === 'ukur' && meas.length === 1) {
+      setPrevLine(meas[0], wallPoint(p));
+    } else if (tool === 'place' && ghost) {
+      ghostPos.x = snapV(p.x); ghostPos.z = snapV(p.z);
+      ghost.position.set(ghostPos.x, 0, ghostPos.z);
+      ghost.visible = true;
+    }
+  }
+  function wallPointFor(o, idx, p) {
+    // handle dinding: snap grid + ortho terhadap ujung lawan + snap ke ujung dinding lain
+    const other = idx === 0 ? { x: o.x2, z: o.z2 } : { x: o.x1, z: o.z1 };
+    let x = snapV(p.x), z = snapV(p.z);
+    if ($('ortho').checked) {
+      if (Math.abs(x - other.x) >= Math.abs(z - other.z)) z = other.z; else x = other.x;
+    }
+    let best = null, bd = 0.25;
+    objs.forEach(w => {
+      if (w === o || w.type !== 'wall') return;
+      [[w.x1, w.z1], [w.x2, w.z2]].forEach(pt => {
+        const d = Math.hypot(pt[0] - x, pt[1] - z);
+        if (d < bd) { bd = d; best = pt; }
+      });
+    });
+    if (best) { x = best[0]; z = best[1]; }
+    return { x: x, z: z };
+  }
+
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  function onUp(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size > 0) return;
+    const g = gest;
+    gest = null;
+    controls.enabled = true;
+    if (!g) return;
+    if (g.k === 'maybe') {
+      if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < 6) select(g.id);
+    } else if (g.k === 'move' || g.k === 'handle') {
+      hidePreviews();
+      if (g.moved) {
+        const o = entries.get(g.k === 'move' ? g.id : selId).o;
+        if (o.type === 'room') {
+          const a = Math.min(o.x1, o.x2), b = Math.max(o.x1, o.x2), c = Math.min(o.z1, o.z2), d = Math.max(o.z1, o.z2);
+          o.x1 = a; o.x2 = b; o.z1 = c; o.z2 = d;
+          rebuildObj(o);
+        }
+        updateHandles();
+        renderProps();
+        updateStats();
+        scheduleSun();
+      }
+    } else if (g.k === 'box') {
+      prevRect.visible = false;
+      if (g.b && (Math.abs(g.b.x - g.a.x) > 0.2 || Math.abs(g.b.z - g.a.z) > 0.2)) {
+        const x0 = Math.min(g.a.x, g.b.x), x1 = Math.max(g.a.x, g.b.x), z0 = Math.min(g.a.z, g.b.z), z1 = Math.max(g.a.z, g.b.z);
+        const ids = objs.filter(o => {
+          if (lvOf(o) !== curLv) return false;
+          const c = (o.type === 'wall' || o.type === 'room') ? [(o.x1 + o.x2) / 2, (o.z1 + o.z2) / 2] : [o.x, o.z];
+          return c[0] >= x0 && c[0] <= x1 && c[1] >= z0 && c[1] <= z1;
+        }).map(o => o.id);
+        if (ids.length) { select(ids[0]); ids.slice(1).forEach(i => { extra.add(i); setHL(i, true); }); flash(ids.length + ' objek dipilih · seret untuk pindah · R putar'); }
+      }
+    } else if (g.k === 'room') {
+      prevRect.visible = false;
+      if (g.b && Math.abs(g.b.x - g.a.x) >= 0.3 && Math.abs(g.b.z - g.a.z) >= 0.3) {
+        pushHistory();
+        const n = objs.filter(o => o.type === 'room').length;
+        const r = addObj(makeRoom(Math.min(g.a.x, g.b.x), Math.min(g.a.z, g.b.z), Math.max(g.a.x, g.b.x), Math.max(g.a.z, g.b.z), ROOM_COLORS[n % ROOM_COLORS.length], 'Ruangan'));
+        select(r.id);
+        updateStats(); scheduleSun();
+      }
+      setHint();
+    }
+  }
+
+  // =====================================================================
+  //  Alat, hint
+  // =====================================================================
+  const HINTS = {
+    select: 'Klik objek untuk memilih · seret untuk memindah · seret titik kuning untuk ubah ujung/sudut · Del hapus · R putar',
+    wall: 'Klik titik awal, lalu klik titik berikutnya. Dobel klik, Enter, atau tombol Selesai untuk mengakhiri.',
+    room: 'Seret di lantai untuk membuat ruangan (zona warna + nama).',
+    pintu: 'Klik pada dinding untuk menaruh pintu.',
+    jendela: 'Klik pada dinding untuk menaruh jendela.',
+    teks: 'Klik di lantai untuk menaruh teks.',
+    ukur: 'Klik dua titik untuk mengukur jarak (menempel ke ujung dinding). Esc selesai.',
+    calib: 'Klik dua titik pada gambar yang jaraknya Anda ketahui.',
+    place: 'Klik untuk menaruh objek · R putar 90° · Esc selesai'
+  };
+  function setHint(t) { $('hint').textContent = t || HINTS[tool] || ''; }
+  function flash(t) {
+    $('hint').textContent = t;
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => setHint(), 4500);
+  }
+  function rebuildGhost() {
+    if (ghost) { helpers.remove(ghost); disposeGroup(ghost); ghost = null; }
+    if (tool !== 'place' || !placeKey) return;
+    const c = CAT[placeKey];
+    ghost = buildGroup({ id: -1, type: placeKey, x: ghostPos.x, z: ghostPos.z, rot: placeRot, w: c.w, d: c.d, h: c.h, color: c.c }, true);
+    ghost.visible = false;
+    helpers.add(ghost);
+  }
+  function setTool(t, key) {
+    finishChain();
+    hidePreviews();
+    if (t !== 'calib') clearCalib();
+    if (t !== 'ukur') clearMeas();
+    tool = t;
+    placeKey = t === 'place' ? key : null;
+    placeRot = 0;
+    document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+    document.querySelectorAll('[data-furn]').forEach(b => b.classList.toggle('active', t === 'place' && b.dataset.furn === key));
+    rebuildGhost();
+    dom.style.cursor = t === 'select' ? 'default' : 'crosshair';
+    setHint();
+  }
+
+  // =====================================================================
+  //  Proyek: contoh, simpan, buka, ekspor
+  // =====================================================================
+  function loadObjs(list, next) {
+    select(null);
+    objs = list;
+    nextId = next || (list.reduce((m, o) => Math.max(m, o.id), 0) + 1);
+    rebuildAll();
+    updateStats();
+    updateSun();
+  }
+
+  function sampleOffice() {
+    nextId = 1;
+    const list = [];
+    const W = (x1, z1, x2, z2, op) => list.push(makeWall(x1, z1, x2, z2, op));
+    const win = (s, w) => ({ k: 'jendela', s: s, w: w || 1.6, sill: 0.9, hh: 1.2 });
+    const door = (s, w) => ({ k: 'pintu', s: s, w: w || 1.0, hh: 2.1 });
+    list.push(makeRoom(-8, -5, 2, 5, '#dbeafe', 'Ruang Kerja'));
+    list.push(makeRoom(2, -5, 8, 1, '#dcfce7', 'Ruang Rapat'));
+    list.push(makeRoom(2, 1, 8, 5, '#fef3c7', 'Lobby'));
+    W(-8, -5, 8, -5, [win(3), win(8), win(13)]);
+    W(8, -5, 8, 5, [win(3), win(7.5)]);
+    W(8, 5, -8, 5, [door(4, 1.4), win(11), win(14)]);
+    W(-8, 5, -8, -5, [win(3), win(7)]);
+    W(2, -5, 2, 5, [door(8, 1.2)]);
+    W(2, 1, 8, 1, [door(2, 1.0)]);
+    [[-6, -2.8], [-3.5, -2.8], [-6, 0.8], [-3.5, 0.8]].forEach(p => {
+      list.push(makeFurn('meja', p[0], p[1], 0));
+      list.push(makeFurn('kursi', p[0], p[1] - 0.8, 0));
+    });
+    list.push(makeFurn('lemari', -7.7, -0.5, 90));
+    list.push(makeFurn('lemari', -7.7, -2.0, 90));
+    list.push(makeFurn('tanaman', -7.3, 4.3, 0));
+    list.push(makeFurn('rapat', 5, -2, 0));
+    [4.2, 5, 5.8].forEach(x => {
+      list.push(makeFurn('kursi', x, -3.0, 0));
+      list.push(makeFurn('kursi', x, -1.0, 180));
+    });
+    list.push(makeFurn('kursi', 3.45, -2, 90));
+    list.push(makeFurn('kursi', 6.55, -2, 270));
+    const sofa = makeFurn('sofa', 5, 4.45, 180);
+    list.push(sofa);
+    const ct = makeFurn('meja', 5, 3.3, 0);
+    ct.w = 0.9; ct.d = 0.5; ct.h = 0.4;
+    list.push(ct);
+    list.push(makeFurn('tanaman', 7.3, 4.3, 0));
+    return list;
+  }
+
+  function loadSample() {
+    const list = sampleOffice();
+    loadObjs(list, nextId);
+    clearBg();
+    fitCamera();
+    scheduleAutosave();
+  }
+  function newProject() {
+    fh = null;
+    if (objs.length && !confirm('Mulai proyek baru? Pekerjaan yang belum disimpan akan hilang (undo masih tersedia sampai halaman ditutup).')) return;
+    pushHistory();
+    loadObjs([], 1);
+    clearBg();
+    fitCamera();
+    scheduleAutosave();
+    showWelcome(true);
+  }
+
+  const wel = $('welcome');
+  function showWelcome(on) { wel.style.display = on ? 'flex' : 'none'; }
+  function loadTpl() {
+    const W = [[0,0,9,0],[9,0,9,6],[9,6,0,6],[0,6,0,0],[4,0,4,6],[4,3,9,3]].map(a => makeWall(a[0],a[1],a[2],a[3]));
+    W[0].op = [{ k: 'pintu', s: 2, w: 0.9 }, { k: 'jendela', s: 6.5, w: 1.5 }];
+    W[2].op = [{ k: 'jendela', s: 2, w: 1.5 }, { k: 'jendela', s: 6.5, w: 1.5 }];
+    loadObjs(W.concat([makeRoom(0,0,4,6,ROOM_COLORS[0],'Ruang tamu'), makeRoom(4,0,9,3,ROOM_COLORS[1],'Kamar'), makeRoom(4,3,9,6,ROOM_COLORS[2],'Dapur')]), nextId);
+    clearBg(); fitCamera(); scheduleAutosave();
+  }
+  async function shareLink() {
+    try {
+      const st = new Blob([snapshot()]).stream().pipeThrough(new CompressionStream('gzip'));
+      const b = new Uint8Array(await new Response(st).arrayBuffer());
+      let t = ''; b.forEach(c => t += String.fromCharCode(c));
+      const u = location.href.split('#')[0] + '#p=' + btoa(t).replace(/\+/g, '-').replace(/\//g, '_');
+      try { await navigator.clipboard.writeText(u); flash('Link disalin. Gambar latar tidak ikut terbagi.'); } catch (e) { prompt('Salin link:', u); }
+    } catch (e) { flash('Browser tidak mendukung link bagikan.'); }
+  }
+  async function loadHash() {
+    const m = location.hash.match(/^#p=(.+)/);
+    if (!m) return false;
+    try {
+      const a = Uint8Array.from(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+      const d = JSON.parse(await new Response(new Blob([a]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+      loadObjs(d.objs, d.nextId); fitCamera(); return true;
+    } catch (e) { return false; }
+  }
+
+  const gltfLoader = THREE.GLTFLoader ? new THREE.GLTFLoader() : null;
+  function b64(buf) { let t = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) t += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(t); }
+  function unb64(t) { const r = atob(t), u = new Uint8Array(r.length); for (let i = 0; i < r.length; i++) u[i] = r.charCodeAt(i); return u.buffer; }
+  function idb() { return new Promise((res, rej) => { const r = indexedDB.open('denah3d', 1); r.onupgradeneeded = () => r.result.createObjectStore('models'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+  async function idbPut(id, v) { try { const d = await idb(); d.transaction('models', 'readwrite').objectStore('models').put(v, id); } catch (e) { /* abaikan */ } }
+  async function idbAll() {
+    try {
+      const d = await idb();
+      return await new Promise(res => { const o = {}, q = d.transaction('models').objectStore('models').openCursor(); q.onsuccess = () => { const c = q.result; if (c) { o[c.key] = c.value; c.continue(); } else res(o); }; q.onerror = () => res({}); });
+    } catch (e) { return {}; }
+  }
+  function addModelButton(key) {
+    const bx = $('myModels');
+    if (bx.querySelector('[data-furn="' + key + '"]')) return;
+    const b = document.createElement('button');
+    b.className = 'tool'; b.dataset.furn = key; b.innerHTML = '<span>🧩</span>' + CAT[key].n;
+    b.addEventListener('click', () => setTool('place', key));
+    bx.appendChild(b);
+  }
+  function registerModel(id, name, buf, cb) {
+    if (!gltfLoader) { flash('Pemuat GLB gagal dimuat (periksa internet).'); cb && cb(false); return; }
+    gltfLoader.parse(buf, '', gltf => {
+      const sc = gltf.scene, bb = new THREE.Box3().setFromObject(sc), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3());
+      sc.position.set(-c.x, -bb.min.y, -c.z);
+      const wrap = new THREE.Group(); wrap.add(sc);
+      sz.set(Math.max(sz.x, 1e-3), Math.max(sz.y, 1e-3), Math.max(sz.z, 1e-3));
+      const k = Math.max(sz.x, sz.y, sz.z) > 50 ? 0.01 : 1;   // asumsi cm jika sangat besar
+      models.set(id, { name: name, buf: buf, tpl: wrap, size: sz });
+      CAT['m_' + id] = { n: name, e: '🧩', w: fmt(sz.x * k), d: fmt(sz.z * k), h: fmt(sz.y * k), c: '#ffffff', model: id };
+      addModelButton('m_' + id);
+      cb && cb(true);
+    }, () => { flash('Gagal membaca model (mungkin terkompresi Draco atau bukan .glb).'); cb && cb(false); });
+  }
+  function loadModels(m) {
+    Object.keys(m || {}).forEach(id => {
+      const buf = unb64(m[id].b64);
+      registerModel(id, m[id].name, buf.slice(0), ok => { if (ok) { idbPut(id, { name: m[id].name, buf: buf }); rebuildAll(); updateStats(); } });
+    });
+  }
+
+  function download(href, name) {
+    const a = document.createElement('a');
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    download(url, name);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+  let fh = null;
+  async function saveProject(asNew) {
+    const d = { v: 2, objs: objs, nextId: nextId, lebar: bgW(), opas: +$('opas').value, bg: null };
+    if (bg.loaded) { try { d.bg = src.toDataURL('image/jpeg', 0.85); } catch (e) { d.bg = null; } }
+    d.models = {};
+    objs.forEach(o => { const c = CAT[o.type]; if (c && c.model && models.has(c.model) && !d.models[c.model]) d.models[c.model] = { name: models.get(c.model).name, b64: b64(models.get(c.model).buf) }; });
+    const json = JSON.stringify(d);
+    if (window.showSaveFilePicker) {
+      try {
+        if (!fh || asNew === true) fh = await window.showSaveFilePicker({ suggestedName: 'denah3d-proyek.json', types: [{ description: 'Proyek denah', accept: { 'application/json': ['.json'] } }] });
+        const w = await fh.createWritable(); await w.write(json); await w.close();
+        flash('Tersimpan ke ' + fh.name + ' (Ctrl+S untuk simpan lagi)'); return;
+      } catch (e) { if (e && e.name === 'AbortError') return; fh = null; }
+    }
+    downloadBlob(new Blob([json], { type: 'application/json' }), 'denah3d-proyek.json');
+  }
+  function openProject(file) {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!Array.isArray(d.objs)) throw new Error('format');
+        loadObjs(d.objs, d.nextId);
+        loadModels(d.models);
+        undoS.length = 0; redoS.length = 0; syncUndo();
+        if (d.lebar) $('lebar').value = d.lebar;
+        if (d.opas) { $('opas').value = d.opas; syncLabels(); }
+        if (d.bg) {
+          const im = new Image();
+          im.onload = () => { setSource(im); fitCamera(); };
+          im.src = d.bg;
+        } else { clearBg(); fitCamera(); }
+        scheduleAutosave();
+        flash('Proyek dibuka.');
+      } catch (e) { flash('File proyek tidak valid.'); }
+    };
+    r.readAsText(file);
+  }
+  function exportPng() {
+    renderer.render(scene, camera);
+    download(dom.toDataURL('image/png'), 'denah3d.png');
+  }
+  function exportGlb() {
+    if (!THREE.GLTFExporter) { flash('Exporter GLB tidak termuat (butuh internet).'); return; }
+    const prev = selId;
+    select(null);
+    new THREE.GLTFExporter().parse(root, res => {
+      downloadBlob(new Blob([res], { type: 'model/gltf-binary' }), 'denah3d.glb');
+      select(prev);
+    }, { binary: true });
+  }
+  function exportCsv() {
+    const rows = ['tipe,nama,pusat_x_m,pusat_z_m,lebar_m,dalam_m,tinggi_m,rotasi_deg,keterangan'];
+    const esc = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+    objs.forEach(o => {
+      if (o.type === 'wall') {
+        const L = wallLen(o), ang = Math.atan2(o.z2 - o.z1, o.x2 - o.x1) * 180 / Math.PI;
+        rows.push(['dinding', 'Dinding', fmt((o.x1 + o.x2) / 2), fmt((o.z1 + o.z2) / 2), fmt(L), fmt(o.t), fmt(o.h), fmt(ang), esc((o.op || []).length + ' bukaan')].join(','));
+      } else if (o.type === 'room') {
+        rows.push(['ruangan', esc(o.label), fmt((o.x1 + o.x2) / 2), fmt((o.z1 + o.z2) / 2), fmt(Math.abs(o.x2 - o.x1)), fmt(Math.abs(o.z2 - o.z1)), '', 0, esc(fmt(Math.abs(o.x2 - o.x1) * Math.abs(o.z2 - o.z1)) + ' m2')].join(','));
+      } else if (o.type === 'teks') {
+        rows.push(['teks', esc(o.text), fmt(o.x), fmt(o.z), '', '', '', fmt(o.rot), ''].join(','));
+      } else {
+        rows.push([o.type, esc(typeName(o)), fmt(o.x), fmt(o.z), fmt(o.w), fmt(o.d), fmt(o.h), fmt(o.rot), ''].join(','));
+      }
+    });
+    downloadBlob(new Blob([rows.join('\n')], { type: 'text/csv' }), 'objek_denah3d.csv');
+  }
+
+  // =====================================================================
+  //  UI wiring
+  // =====================================================================
+  function syncLabels() {
+    $('vOpas').textContent = Math.round(+$('opas').value * 100) + '%';
+    $('vRes').textContent = $('res').value + ' kolom';
+    $('vThr').textContent = $('thr').value;
+    $('vMinlen').textContent = (+$('minlen').value).toFixed(1) + ' m';
+  }
+
+  // katalog furnitur
+  const furnBox = $('furn');
+  Object.keys(CAT).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'tool';
+    b.dataset.furn = k;
+    b.innerHTML = '<span>' + CAT[k].e + '</span>' + CAT[k].n;
+    b.addEventListener('click', () => setTool('place', k));
+    furnBox.appendChild(b);
+  });
+  document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+
+  $('btnUndo').addEventListener('click', undo);
+  $('btnRedo').addEventListener('click', redo);
+  $('btnView').addEventListener('click', () => { setView2D(!view2d); });
+  $('btnFit').addEventListener('click', fitCamera);
+  $('btnDone').addEventListener('click', finishChain);
+
+  $('file').addEventListener('change', e => { loadImageFile(e.target.files[0]); e.target.value = ''; });
+  $('openFile').addEventListener('change', e => { openProject(e.target.files[0]); e.target.value = ''; });
+  $('btnClearBg').addEventListener('click', clearBg);
+  $('btnDetect').addEventListener('click', detectWalls);
+  $('btnClearAuto').addEventListener('click', clearAuto);
+  $('btnCalibApply').addEventListener('click', applyCalib);
+  $('btnCalibCancel').addEventListener('click', clearCalib);
+  $('btnSample').addEventListener('click', () => { if (!objs.length || confirm('Ganti isi proyek dengan contoh kantor?')) { pushHistory(); loadSample(); } });
+  $('btnNew').addEventListener('click', newProject);
+  $('btnSave').addEventListener('click', saveProject);
+  $('btnPng').addEventListener('click', exportPng);
+  $('btnGlb').addEventListener('click', exportGlb);
+  $('btnCsv').addEventListener('click', exportCsv);
+
+  $('lebar').addEventListener('change', () => { updateBg(); scheduleSun(); });
+  $('opas').addEventListener('input', () => { syncLabels(); if (bg.mesh) bg.mesh.material.opacity = +$('opas').value; });
+  $('showbg').addEventListener('change', () => { if (bg.mesh) bg.mesh.visible = $('showbg').checked; });
+  $('metode').addEventListener('change', () => { $('thr').value = $('metode').value === 'min' ? 40 : 128; syncLabels(); });
+  ['res', 'thr', 'minlen'].forEach(id => $(id).addEventListener('input', syncLabels));
+  $('shadow').addEventListener('change', () => { sun.castShadow = $('shadow').checked; renderer.shadowMap.enabled = $('shadow').checked; scene.traverse(n => { if (n.material) n.material.needsUpdate = true; }); });
+  $('showgrid').addEventListener('change', () => { grid.visible = $('showgrid').checked; });
+  $('snap').addEventListener('change', () => { try { localStorage.setItem('denah3d-snap', $('snap').value); } catch (e) { /* abaikan */ } });
+
+  // drag & drop gambar
+  ['dragenter', 'dragover'].forEach(ev => view.addEventListener(ev, e => { e.preventDefault(); $('drop').style.display = 'flex'; }));
+  ['dragleave', 'drop'].forEach(ev => view.addEventListener(ev, e => { e.preventDefault(); $('drop').style.display = 'none'; }));
+  view.addEventListener('drop', e => loadImageFile(e.dataTransfer.files[0]));
+
+  // keyboard
+  window.addEventListener('keyup', e => { wk[e.key.toLowerCase()] = false; });
+  function setWalk(on) {
+    if (on && view2d) { flash('Beralih ke 3D dulu (tombol 2D/3D).'); return; }
+    walk = on; $('btnWalk').classList.toggle('on', on); $('pad').style.display = on ? 'grid' : 'none'; updateRoof();
+    if (on) {
+      saved = { p: camera.position.clone(), t: controls.target.clone() };
+      const b = bounds(), y = 1.6 + curLv * FH;
+      camera.position.set(b.cx, y, b.cz); controls.target.set(b.cx, y, b.cz - 0.5);
+      controls.enableZoom = false; controls.enablePan = false;
+      controls.minDistance = controls.maxDistance = 0.5; controls.maxPolarAngle = Math.PI * 0.92; controls.rotateSpeed = -0.4;
+      select(null); flash('Mode jalan: W/A/S/D atau tombol panah untuk melangkah, seret untuk menoleh.');
+    } else if (saved) {
+      controls.enableZoom = controls.enablePan = true; controls.minDistance = 0; controls.maxDistance = Infinity;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02; controls.rotateSpeed = 1;
+      camera.position.copy(saved.p); controls.target.copy(saved.t);
+    }
+  }
+  $('btnWalk').onclick = () => setWalk(!walk);
+  $('pad').querySelectorAll('button').forEach(b => {
+    const k = b.dataset.k;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); wk[k] = true; });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => { wk[k] = false; }));
+  });
+  $('btnPrint').onclick = () => { if (walk) setWalk(false); $('dims').checked = true; updateDims(); if (!view2d) setView2D(true); fitCamera(); flash('Menyiapkan cetak…'); setTimeout(() => window.print(), 600); };
+  window.addEventListener('beforeprint', () => {
+    scene.background = new THREE.Color(0xffffff); grid.visible = true;
+    $('cap').textContent = 'Denah 3D Studio · tampak atas · jarak antar garis grid = 1 m · ' + new Date().toLocaleDateString('id-ID');
+  });
+  window.addEventListener('afterprint', () => { scene.background = new THREE.Color(0x0f1419); grid.visible = $('showgrid').checked; });
+  window.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && (t.type === 'text' || t.type === 'number')))) return;
+    const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+    if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+    if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+    if (mod && k === 's') { e.preventDefault(); saveProject(e.shiftKey); return; }
+    if (mod && k === 'a') {
+      e.preventDefault();
+      const ids = objs.filter(o => lvOf(o) === curLv).map(o => o.id);
+      if (ids.length) { select(ids[0]); ids.slice(1).forEach(i => { extra.add(i); setHL(i, true); }); flash(ids.length + ' objek dipilih'); }
+      return;
+    }
+    if (mod && k === 'd') { e.preventDefault(); duplicateSel(); return; }
+    if (walk && /^(w|a|s|d|arrowup|arrowdown|arrowleft|arrowright)$/.test(k)) { e.preventDefault(); wk[k] = true; return; }
+    if (tool === 'wall' && chain) {
+      if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); numBuf += e.key === ',' ? '.' : e.key; setHint('Panjang: ' + numBuf + ' m · Enter terapkan · Backspace hapus'); return; }
+      if (k === 'backspace' && numBuf) { e.preventDefault(); numBuf = numBuf.slice(0, -1); setHint('Panjang: ' + numBuf + ' m'); return; }
+      if (k === 'enter' && numBuf) {
+        const L = parseFloat(numBuf); numBuf = '';
+        const dx = lastQ ? lastQ.x - chain.x : 0, dz = lastQ ? lastQ.z - chain.z : 0, l = Math.hypot(dx, dz);
+        if (L > 0 && l > 1e-4) {
+          pushHistory();
+          const nx = chain.x + dx / l * L, nz = chain.z + dz / l * L;
+          addObj(makeWall(chain.x, chain.z, nx, nz));
+          chain = { x: nx, z: nz }; setPrevLine(chain, chain);
+          updateStats(); scheduleSun();
+        } else flash('Arahkan kursor ke arah dinding dulu, lalu ketik panjangnya.');
+        return;
+      }
+    }
+    if (k === 'delete' || k === 'backspace') { if (selId !== null) { e.preventDefault(); deleteSel(); } return; }
+    if (k === 'escape') {
+      if (chain) finishChain();
+      else if (tool !== 'select') setTool('select');
+      else select(null);
+      return;
+    }
+    if (k === 'enter') { finishChain(); return; }
+    if (k === 'r') {
+      if (tool === 'place') { placeRot = (placeRot + 90) % 360; rebuildGhost(); if (ghost) { ghost.position.set(ghostPos.x, 0, ghostPos.z); ghost.visible = true; } }
+      else rotateSel(90);
+      return;
+    }
+    if (k.indexOf('arrow') === 0 && selId !== null && tool === 'select') {
+      e.preventDefault();
+      const o = entries.get(selId).o, st = (+$('snap').value) || 0.1;
+      const dx = k === 'arrowleft' ? -st : k === 'arrowright' ? st : 0;
+      const dz = k === 'arrowup' ? -st : k === 'arrowdown' ? st : 0;
+      pushHistory();
+      if (o.type === 'wall' || o.type === 'room') { o.x1 += dx; o.x2 += dx; o.z1 += dz; o.z2 += dz; }
+      else { o.x += dx; o.z += dz; }
+      rebuildObj(o); updateHandles(); renderProps();
+    }
+  });
+
+  function resize() {
+    const w = view.clientWidth, h = view.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(view);
+  window.addEventListener('resize', resize);
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    if (walk) {
+      const now = performance.now(), dt = Math.min(0.1, (now - (lastT || now)) / 1000); lastT = now;
+      const f = (wk.w || wk.arrowup ? 1 : 0) - (wk.s || wk.arrowdown ? 1 : 0), r = (wk.d || wk.arrowright ? 1 : 0) - (wk.a || wk.arrowleft ? 1 : 0);
+      if (f || r) {
+        const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
+        const mv = dir.clone().multiplyScalar(f).add(new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(r)).multiplyScalar(2.5 * dt);
+        camera.position.add(mv); controls.target.add(mv);
+      }
+    } else lastT = 0;
+    controls.update();
+    if (handleGroup.children.length) {
+      const dist = camera.position.distanceTo(controls.target);
+      const s = Math.max(0.5, dist * 0.014 / 0.22);
+      handleGroup.children.forEach(h => h.scale.setScalar(s));
+    }
+    renderer.render(scene, camera);
+  })();
+
+  // =====================================================================
+  //  Mulai
+  // =====================================================================
+  try { const sv = localStorage.getItem('denah3d-snap'); if (sv !== null) $('snap').value = sv; } catch (e) { /* abaikan */ }
+  syncLabels();
+  syncUndo();
+  resize();
+  setTool('select');
+  let restored = false;
+  try {
+    const raw = localStorage.getItem('denah3d-v2');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (Array.isArray(d.objs) && d.objs.length) { loadObjs(d.objs, d.nextId); restored = true; }
+    }
+  } catch (e) { restored = false; }
+  fitCamera();
+  if (!restored) showWelcome(true);
+  $('wNew').onclick = () => showWelcome(false);
+  $('wImg').onclick = () => { showWelcome(false); $('secBg').open = true; $('file').click(); };
+  $('wTpl').onclick = () => { loadTpl(); showWelcome(false); };
+  $('wSample').onclick = () => { loadSample(); showWelcome(false); };
+  $('btnMulti').onclick = () => { multiMode = !multiMode; $('btnMulti').classList.toggle('on', multiMode); flash(multiMode ? 'Mode pilih banyak: ketuk objek untuk menambah/melepas.' : 'Mode pilih banyak mati.'); };
+  $('dims').addEventListener('change', updateDims);
+  $('atap').addEventListener('change', updateRoof);
+  $('btnHelp').onclick = () => showWelcome(true);
+  $('btnShare').onclick = shareLink;
+  $('glbFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (f.size > 15e6) flash('Model besar (>15 MB) bisa membuat aplikasi lambat.');
+    const buf = await f.arrayBuffer(), id = 'u' + Date.now().toString(36), name = f.name.replace(/\.[^.]+$/, '').slice(0, 16);
+    registerModel(id, name, buf.slice(0), ok => { if (ok) { idbPut(id, { name: name, buf: buf }); setTool('place', 'm_' + id); flash('Model "' + name + '" siap. Klik di denah untuk menaruh; ubah ukurannya di properti.'); } });
+  });
+  idbAll().then(o => Object.keys(o).forEach(id => registerModel(id, o[id].name, o[id].buf.slice(0), ok => { if (ok) { rebuildAll(); updateStats(); } })));
+  loadHash().then(ok => { if (ok) showWelcome(false); });
+  renderProps();
+  updateSun();
+})();
+</script>
+</body>
+</html>
