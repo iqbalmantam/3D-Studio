@@ -1,0 +1,3119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Denah 3D Studio</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0f1419;color:#e6edf3}
+#app{display:flex;height:100vh;height:100dvh}
+#panel{width:340px;flex:none;overflow-y:auto;padding:14px;background:#151b23;border-right:1px solid #263041}
+#view{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden}
+#view canvas{display:block;touch-action:none}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:#8b98a9;font-size:12px;margin:0 0 12px}
+details{border:1px solid #263041;border-radius:10px;margin:0 0 10px;padding:0 10px}
+summary{cursor:pointer;padding:8px 0;color:#9fb0c5;font-size:12px;text-transform:uppercase;letter-spacing:.06em;user-select:none}
+details[open]>summary{margin-bottom:2px}
+details>div,details>.body{padding-bottom:10px}
+label{display:block;margin:8px 0 2px;font-size:13px}
+label .v{float:right;color:#8b98a9;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%}
+input[type=number],input[type=text],select{width:100%;padding:6px 8px;background:#0f1419;color:inherit;border:1px solid #263041;border-radius:6px;font:inherit}
+input[type=color]{width:100%;height:32px;border:1px solid #263041;border-radius:6px;background:#0f1419;padding:2px}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0 0}
+.chk input{margin:0}
+.chk label{margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button,.btn{flex:1;min-width:0;padding:8px 10px;background:#1f2a3a;color:#e6edf3;border:1px solid #2f3d52;border-radius:8px;font:inherit;cursor:pointer;text-align:center}
+button:hover,.btn:hover{background:#27364b}
+button:disabled{opacity:.4;cursor:default}
+.primary{background:#2563eb!important;border-color:#2563eb!important}
+.danger{background:#5b1f27!important;border-color:#7a2a35!important}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tool{padding:7px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}
+.tool span{font-size:18px}
+.tool.active{background:#2563eb;border-color:#2563eb}
+#props{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+#props .full{grid-column:1/-1}
+#props .f label{margin-top:6px}
+.ptitle{font-weight:600;color:#ff9f1c;margin-top:2px}
+.muted{color:#8b98a9;font-size:13px}
+.op{border:1px solid #2a384c;border-radius:8px;padding:2px 8px 8px;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.op .oh{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:12px;color:#9fb0c5}
+.op .oh button{flex:none;padding:2px 8px}
+#stats div{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;color:#b6c2d1}
+.foot{color:#6b7a8d;font-size:12px;margin-top:6px}
+#topbar{position:absolute;top:10px;right:10px;display:flex;gap:6px}
+#topbar button{flex:none;padding:6px 11px;background:rgba(21,27,35,.88)}
+#hint{position:absolute;left:12px;bottom:10px;max-width:calc(100% - 24px);padding:5px 12px;background:rgba(15,20,25,.8);border-radius:999px;color:#9fb0c5;font-size:12px;pointer-events:none}
+#drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(37,99,235,.25);border:3px dashed #2563eb;font-size:20px;pointer-events:none}
+#msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;color:#ffb4b4}
+#floors{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:60%}
+#floors button{flex:none;padding:6px 11px;background:rgba(21,27,35,.88)}
+#floors .on,#btnMulti.on{background:#2563eb!important;border-color:#2563eb!important}
+#welcome,#modalBox{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(10,14,20,.82);backdrop-filter:blur(6px);z-index:10;overflow:auto}
+#topbar button,#floors button,#pad button{backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.35);transition:background .15s,transform .1s}
+#topbar button:active,#floors button:active{transform:scale(.96)}
+.wbox{max-width:420px;width:100%;background:#151b23;border:1px solid #263041;border-radius:14px;padding:18px;text-align:center}
+.wbox h2{margin:0 0 4px;font-size:20px}.wbox button{display:block;width:100%;margin-top:8px;padding:12px;flex:none}
+.wbox ol{text-align:left;color:#9fb0c5;font-size:13px;padding-left:20px;margin:14px 0 0}
+#pad{position:absolute;right:12px;bottom:12px;display:none;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;z-index:3}
+#pad button{padding:0;font-size:20px;touch-action:none;user-select:none;background:rgba(21,27,35,.88)}
+#cap{display:none}
+@media print{#cap{display:block;position:absolute;left:12px;bottom:10px;color:#000;font-size:12px}#pad{display:none!important}
+#panel,#topbar,#floors,#hint,#welcome{display:none!important}#app{display:block;height:auto}#view{height:100vh}}
+@media (max-width:800px){
+  #app{flex-direction:column}
+  #view{order:-1;flex:none;height:55vh;height:55dvh}
+  #panel{width:auto;flex:1;border-right:0;border-top:1px solid #263041}
+  .tools{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>Denah 3D Studio</h1>
+    <p class="sub">Editor denah 3D serbaguna: kantor, rumah, toko, gudang</p>
+
+    <details open>
+      <summary>Alat gambar</summary>
+      <div class="tools" id="tools">
+        <button class="tool" data-tool="select"><span>🖱️</span>Pilih</button>
+        <button class="tool" data-tool="wall"><span>🧱</span>Dinding</button>
+        <button class="tool" data-tool="room"><span>⬜</span>Ruangan</button>
+        <button class="tool" data-tool="pintu"><span>🚪</span>Pintu</button>
+        <button class="tool" data-tool="jendela"><span>🪟</span>Jendela</button>
+        <button class="tool" data-tool="teks"><span>🔤</span>Teks</button>
+        <button class="tool" data-tool="calib"><span>📏</span>Kalibrasi</button>
+        <button class="tool" data-tool="ukur"><span>📐</span>Ukur</button>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Furnitur &amp; objek</summary>
+      <div class="tools" id="furn"></div>
+      <div class="tools" id="myModels" style="margin-top:6px"></div>
+      <div class="row"><label class="btn primary" style="margin:0">🧩 Impor model 3D (.glb)<input id="glbFile" type="file" accept=".glb" hidden></label></div>
+      <div class="foot">Model .glb (mis. dari Sketchfab atau Poly Haven) disimpan di browser ini dan ikut tersimpan di file proyek .json.</div>
+    </details>
+
+    <details open>
+      <summary>Properti objek terpilih</summary>
+      <div id="props"></div>
+    </details>
+
+    <details id="secBg">
+      <summary>Denah gambar (referensi / jiplak)</summary>
+      <div class="body">
+        <div class="row" style="margin-top:0">
+          <label class="btn primary" style="margin:0">Upload gambar<input id="file" type="file" accept="image/*" hidden></label>
+          <button id="btnClearBg">Lepas gambar</button>
+        </div>
+        <label for="lebar">Lebar gambar (meter)</label>
+        <input id="lebar" type="number" min="1" max="2000" step="0.5" value="40">
+        <label for="opas">Opasitas gambar <span class="v" id="vOpas"></span></label>
+        <input id="opas" type="range" min="0.1" max="1" step="0.05" value="0.7">
+        <div class="chk"><input id="showbg" type="checkbox" checked><label for="showbg">Tampilkan gambar</label></div>
+
+        <div id="calibBox" style="display:none;margin-top:8px;padding:8px;border:1px solid #ff9f1c;border-radius:8px">
+          <div id="calibInfo" class="muted"></div>
+          <label for="calibReal">Jarak sebenarnya (meter)</label>
+          <input id="calibReal" type="number" min="0.1" step="0.01">
+          <div class="row"><button id="btnCalibApply" class="primary">Terapkan skala</button><button id="btnCalibCancel">Batal</button></div>
+        </div>
+        <div class="foot">Kalibrasi: pilih alat 📏, klik dua titik di gambar yang jaraknya Anda tahu (misalnya garis "4300cm"), lalu isi jarak sebenarnya.</div>
+
+        <div style="margin-top:12px;font-size:12px;color:#9fb0c5;text-transform:uppercase;letter-spacing:.06em">Deteksi dinding otomatis</div>
+        <label for="metode">Metode</label>
+        <select id="metode">
+          <option value="min">Garis tipis (cocok untuk denah CAD / SketchUp)</option>
+          <option value="avg">Blok tebal (cocok untuk gambar sketsa tebal)</option>
+        </select>
+        <label for="res">Resolusi grid <span class="v" id="vRes"></span></label>
+        <input id="res" type="range" min="80" max="500" step="10" value="280">
+        <label for="thr">Ambang gelap <span class="v" id="vThr"></span></label>
+        <input id="thr" type="range" min="5" max="250" step="1" value="40">
+        <label for="minlen">Panjang minimum objek <span class="v" id="vMinlen"></span></label>
+        <input id="minlen" type="range" min="0.5" max="12" step="0.5" value="3">
+        <div class="chk"><input id="inv" type="checkbox"><label for="inv">Balik (area terang = dinding)</label></div>
+        <div class="row">
+          <button id="btnDetect" class="primary">Deteksi dinding</button>
+          <button id="btnClearAuto">Hapus hasil deteksi</button>
+        </div>
+        <div class="foot">Teks dan garis dimensi dibuang lewat ambang gelap rendah + panjang minimum. Hasil deteksi bisa diedit seperti dinding biasa.</div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Pengaturan</summary>
+      <div class="body">
+        <label for="snap">Snap ke grid</label>
+        <select id="snap">
+          <option value="0">Mati</option>
+          <option value="0.05">5 cm</option>
+          <option value="0.1" selected>10 cm</option>
+          <option value="0.25">25 cm</option>
+          <option value="0.5">50 cm</option>
+          <option value="1">1 m</option>
+        </select>
+        <div class="chk"><input id="ortho" type="checkbox" checked><label for="ortho">Kunci dinding lurus (horizontal / vertikal)</label></div>
+        <div class="chk"><input id="shadow" type="checkbox" checked><label for="shadow">Bayangan lembut HD</label></div>
+
+        <label for="suasana">Suasana &amp; pencahayaan 3D</label>
+        <select id="suasana">
+          <option value="siang" selected>☀️ Siang Cerah (Alami Realistis)</option>
+          <option value="sore">🌅 Sore Golden Hour (Hangat)</option>
+          <option value="malam">🌙 Malam &amp; Lampu Interior</option>
+          <option value="studio">🎬 Studio Arsitektur Gelap</option>
+        </select>
+
+        <div class="chk"><input id="lampuInt" type="checkbox" checked><label for="lampuInt">Lampu ruangan otomatis (3D)</label></div>
+
+        <label for="atap">Atap / plafon (tampilan 3D)</label>
+        <select id="atap"><option value="">Tidak ada</option><option value="datar">Plafon datar</option><option value="pelana">Atap pelana</option></select>
+        <div class="chk"><input id="dims" type="checkbox"><label for="dims">Tampilkan ukuran dinding</label></div>
+        <div class="chk"><input id="showgrid" type="checkbox" checked><label for="showgrid">Tampilkan grid 1 m</label></div>
+        <label for="tebal">Tebal dinding baru (m)</label>
+        <input id="tebal" type="number" min="0.05" max="2" step="0.01" value="0.15">
+        <label for="tinggiDef">Tinggi dinding baru (m)</label>
+        <input id="tinggiDef" type="number" min="0.3" max="30" step="0.1" value="3">
+      </div>
+    </details>
+
+    <details>
+      <summary>Statistik</summary>
+      <div id="stats"></div>
+    </details>
+
+    <details open>
+      <summary>Proyek</summary>
+      <div class="body">
+        <div class="row" style="margin-top:0">
+          <button id="btnSample">Contoh kantor</button>
+          <button id="btnNew">Proyek baru</button>
+        </div>
+        <div class="row">
+          <button id="btnSave">Simpan (.json)</button>
+          <label class="btn" style="margin:0">Buka (.json)<input id="openFile" type="file" accept=".json,application/json" hidden></label>
+        </div>
+        <div class="row">
+          <button id="btnPng">PNG</button>
+          <button id="btnGlb">GLB (3D)</button>
+          <button id="btnCsv">CSV</button>
+          <button id="btnShare">Link</button>
+          <button id="btnPrint">Cetak 2D</button>
+        </div>
+        <div class="foot">Perubahan tersimpan otomatis di browser ini. Pintasan: Del hapus · R putar · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplikat · Esc batal · Enter selesai dinding.</div>
+      </div>
+    </details>
+  <div class="foot" style="text-align:center;margin:8px 0 4px">Developed by iqbalmantam</div>
+  </aside>
+
+  <main id="view">
+    <div id="floors"></div>
+    <div id="topbar">
+
+      <button id="btnLight" title="Ganti suasana pencahayaan realistis (Siang / Sore / Malam / Studio)">☀️</button>
+      <button id="btnWalk" title="Mode jalan-jalan (first person)">🚶</button>
+      <button id="btnMulti" title="Pilih banyak (atau tahan Shift)">☑</button>
+      <button id="btnUndo" title="Undo (Ctrl+Z)">↶</button>
+      <button id="btnRedo" title="Redo (Ctrl+Y)">↷</button>
+      <button id="btnHelp" title="Bantuan">?</button>
+      <button id="btnView" title="Ganti tampilan">3D</button>
+      <button id="btnFit" title="Tampilkan semua">⤢</button>
+      <button id="btnDone" class="primary" style="display:none">Selesai</button>
+    </div>
+    <div id="welcome"><div class="wbox"><h2>Denah 3D Studio</h2><div class="muted">Mau mulai dari mana?</div>
+<button id="wNew" class="primary">✏️ Denah kosong (gambar dari nol)</button>
+<button id="wImg">🖼️ Upload gambar denah (jiplak)</button>
+<button id="wTpl">🏠 Template rumah sederhana</button>
+<button id="wSample">🏢 Contoh kantor</button>
+<ol><li>Pilih 🧱 Dinding, klik titik demi titik, Enter untuk selesai.</li><li>Tambah 🚪 pintu / 🪟 jendela di dinding, lalu furnitur.</li><li>Tombol 3D di kanan atas untuk ganti 2D/3D.</li></ol></div></div>
+<div id="pad"><button data-k="w" style="grid-area:1/2">▲</button><button data-k="a" style="grid-area:2/1">◀</button><button data-k="s" style="grid-area:2/2">▼</button><button data-k="d" style="grid-area:2/3">▶</button></div>
+<div id="cap"></div>
+<div id="hint"></div>
+    <div id="drop">Lepas gambar denah di sini</div>
+
+    <div id="msg"></div>
+
+    <div id="modalBox">
+      <div class="wbox" style="max-width:380px">
+        <h2 id="modalTitle" style="font-size:17px;margin-bottom:8px">Konfirmasi</h2>
+        <div id="modalText" class="muted" style="margin-bottom:12px;line-height:1.5"></div>
+        <input id="modalInput" type="text" readonly style="display:none;margin-bottom:10px;text-align:center">
+        <div class="row">
+          <button id="modalYes" class="primary">Ya, Lanjutkan</button>
+          <button id="modalNo">Batal</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const view = $('view');
+
+  if (typeof THREE === 'undefined' || !THREE.OrbitControls) {
+    const m = $('msg');
+    m.style.display = 'flex';
+    m.textContent = 'Library Three.js gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.';
+    return;
+  }
+
+  // =====================================================================
+  //  Katalog objek
+  // =====================================================================
+  const CAT = {
+    meja:    { n: 'Meja kerja',  e: '🖥️', w: 1.4, d: 0.7,  h: 0.75, c: '#c8a272' },
+    rapat:   { n: 'Meja rapat',  e: '🗣️', w: 2.4, d: 1.1,  h: 0.75, c: '#8d6e4f' },
+    kursi:   { n: 'Kursi',       e: '🪑', w: 0.5, d: 0.5,  h: 0.9,  c: '#374151' },
+    sofa:    { n: 'Sofa',        e: '🛋️', w: 1.8, d: 0.85, h: 0.8,  c: '#5b7db1' },
+    lemari:  { n: 'Lemari',      e: '🗄️', w: 1.0, d: 0.45, h: 1.9,  c: '#a8b0b8' },
+    rak:     { n: 'Rak gudang',  e: '🏗️', w: 2.7, d: 1.1,  h: 4.5,  c: '#2f6fd0' },
+    pallet:  { n: 'Pallet',      e: '🟫', w: 1.2, d: 1.0,  h: 0.15, c: '#b88a52' },
+    boks:    { n: 'Kardus',      e: '📦', w: 0.6, d: 0.5,  h: 0.5,  c: '#c9a46a' },
+    tanaman: { n: 'Tanaman',     e: '🪴', w: 0.5, d: 0.5,  h: 1.1,  c: '#3f8f4f' },
+    tangga:  { n: 'Tangga',      e: '🪜', w: 1.2, d: 3.0,  h: 3.2,  c: '#9aa3ad' },
+    pilar:   { n: 'Pilar',       e: '🏛️', w: 0.4, d: 0.4,  h: 3.0,  c: '#cfd4da' },
+    lubang:  { n: 'Lubang tangga', e: '🕳️', w: 1.2, d: 3.0, h: 0.04, c: '#111827' },
+    kasur:   { n: 'Kasur',       e: '🛏️', w: 1.6, d: 2.0,  h: 0.55, c: '#cbd5e1' },
+    dapur:   { n: 'Kabinet dapur', e: '🍳', w: 2.4, d: 0.6, h: 0.9,  c: '#e5e7eb' },
+    kloset:  { n: 'Kloset',      e: '🚽', w: 0.4, d: 0.7,  h: 0.75, c: '#f8fafc' },
+    wastafel:{ n: 'Wastafel',    e: '🚰', w: 0.6, d: 0.45, h: 0.85, c: '#e2e8f0' },
+    etalase: { n: 'Etalase/kasir', e: '🛒', w: 1.5, d: 0.6, h: 1.1, c: '#93c5fd' },
+    mobil:   { n: 'Mobil',       e: '🚗', w: 1.8, d: 4.2,  h: 1.5,  c: '#ef4444' },
+    kotak:   { n: 'Kotak bebas', e: '⬛', w: 1.0, d: 1.0,  h: 1.0,  c: '#8a94a3' }
+  };
+  const ROOM_COLORS = ['#dbeafe', '#dcfce7', '#fef3c7', '#fce7f3', '#ede9fe', '#ffedd5'];
+
+  // =====================================================================
+  //  Renderer, scene, kamera
+  // =====================================================================
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
+  view.insertBefore(renderer.domElement, view.firstChild);
+  const dom = renderer.domElement;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f1419);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 5000);
+  const controls = new THREE.OrbitControls(camera, dom);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.07;
+  controls.maxPolarAngle = Math.PI / 2 - 0.015;
+
+  const hemiLight = new THREE.HemisphereLight(0xfff8ee, 0x475569, 0.58);
+  scene.add(hemiLight);
+  const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
+  sun.castShadow = true;
+  const maxTex = (renderer.capabilities && renderer.capabilities.maxTextureSize) ? renderer.capabilities.maxTextureSize : 2048;
+  const shSz = Math.min(4096, Math.max(1024, maxTex));
+  sun.shadow.mapSize.set(shSz, shSz);
+  sun.shadow.bias = -0.00025;
+  sun.shadow.normalBias = 0.012;
+  sun.shadow.radius = 2.0;
+  scene.add(sun);
+  scene.add(sun.target);
+
+  const fillLight = new THREE.DirectionalLight(0xc7dfff, 0.35);
+  scene.add(fillLight);
+  scene.add(fillLight.target);
+
+  const roomLightPool = [];
+  for (let i = 0; i < 6; i++) {
+    const pl = new THREE.PointLight(0xfff1d0, 0, 12, 1.6);
+    pl.position.set(0, -100, 0);
+    scene.add(pl);
+    roomLightPool.push(pl);
+  }
+
+  // Pembuat tekstur lanskap & environment map PBR realistis (IBL)
+  const pmrem = (typeof THREE.PMREMGenerator === 'function') ? new THREE.PMREMGenerator(renderer) : null;
+  if (pmrem && pmrem.compileEquirectangularShader) pmrem.compileEquirectangularShader();
+  const envCache = {};
+  const skyCache = {};
+
+  function getEnvAndSky(preset) {
+    if (!envCache[preset]) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 256;
+      const x = c.getContext('2d');
+      const grd = x.createLinearGradient(0, 0, 0, 256);
+      if (preset === 'sore') {
+        grd.addColorStop(0, '#1e3a5f');
+        grd.addColorStop(0.32, '#6b5b7b');
+        grd.addColorStop(0.48, '#f59e6c');
+        grd.addColorStop(0.52, '#ffd194');
+        grd.addColorStop(0.56, '#4a4238');
+        grd.addColorStop(1, '#26211c');
+      } else if (preset === 'malam') {
+        grd.addColorStop(0, '#070b14');
+        grd.addColorStop(0.45, '#111b2e');
+        grd.addColorStop(0.5, '#1e293b');
+        grd.addColorStop(0.55, '#131822');
+        grd.addColorStop(1, '#090d14');
+      } else if (preset === 'studio') {
+        grd.addColorStop(0, '#334155');
+        grd.addColorStop(0.46, '#475569');
+        grd.addColorStop(0.5, '#64748b');
+        grd.addColorStop(0.55, '#1e293b');
+        grd.addColorStop(1, '#0f172a');
+      } else {
+        // siang cerah realistis
+        grd.addColorStop(0, '#2563eb');
+        grd.addColorStop(0.28, '#60a5fa');
+        grd.addColorStop(0.47, '#dbeafe');
+        grd.addColorStop(0.5, '#f8fafc');
+        grd.addColorStop(0.53, '#7c857b');
+        grd.addColorStop(1, '#3d443b');
+      }
+      x.fillStyle = grd;
+      x.fillRect(0, 0, 512, 256);
+      // Softbox / matahari & awan lembut untuk pantulan kaca/logam/keramik
+      const sunCol = preset === 'sore' ? 'rgba(255,210,140,' : preset === 'malam' ? 'rgba(180,210,255,' : 'rgba(255,252,240,';
+      const sg = x.createRadialGradient(140, 72, 2, 140, 72, 68);
+      sg.addColorStop(0, sunCol + '1)');
+      sg.addColorStop(0.25, sunCol + '0.6)');
+      sg.addColorStop(1, sunCol + '0)');
+      x.fillStyle = sg;
+      x.fillRect(0, 0, 512, 145);
+      // Pantulan jendela studio sekunder
+      x.fillStyle = preset === 'malam' ? 'rgba(255,200,130,0.18)' : 'rgba(255,255,255,0.22)';
+      x.fillRect(320, 45, 90, 50);
+      x.fillRect(430, 55, 55, 40);
+
+      const skyTex = new THREE.CanvasTexture(c);
+      skyTex.mapping = THREE.EquirectangularReflectionMapping;
+      skyTex.encoding = THREE.sRGBEncoding;
+      skyCache[preset] = skyTex;
+      let envTex = skyTex;
+      if (pmrem) {
+        try {
+          const eqTex = new THREE.CanvasTexture(c);
+          eqTex.mapping = THREE.EquirectangularReflectionMapping;
+          eqTex.encoding = THREE.sRGBEncoding;
+          envTex = pmrem.fromEquirectangular(eqTex).texture;
+          eqTex.dispose();
+        } catch (e) {
+          envTex = skyTex;
+        }
+      }
+      envCache[preset] = envTex;
+    }
+    return { env: envCache[preset], sky: skyCache[preset] };
+  }
+
+  function makeGroundTex() {
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const x = c.getContext('2d');
+    x.fillStyle = '#2d3744'; x.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 4500; i++) {
+      const v = 36 + Math.floor(Math.random() * 24);
+      x.fillStyle = 'rgb(' + v + ',' + (v + 6) + ',' + (v + 12) + ')';
+      x.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+    }
+    x.strokeStyle = 'rgba(255,255,255,0.03)'; x.lineWidth = 1;
+    for (let i = 0; i <= 512; i += 64) {
+      x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 512); x.stroke();
+      x.beginPath(); x.moveTo(0, i); x.lineTo(512, i); x.stroke();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(120, 120);
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = 4;
+    return t;
+  }
+
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x26313f, map: makeGroundTex(), roughness: 0.92, metalness: 0.02 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.01;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(200, 200, 0x3b4f6b, 0x263549);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.5;
+  scene.add(grid);
+
+  const root = new THREE.Group();      // semua objek denah
+  scene.add(root);
+  const helpers = new THREE.Group();   // handle, preview, ghost
+  scene.add(helpers);
+  const bgGroup = new THREE.Group();
+  scene.add(bgGroup);
+
+  const gplane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+
+  // =====================================================================
+  //  State
+  // =====================================================================
+  let objs = [];
+  let nextId = 1;
+  const entries = new Map();     // id -> { o, g }
+  let selId = null;
+  let tool = 'select';
+  let placeKey = null, placeRot = 0;
+  let view2d = false;
+  let chain = null;              // titik terakhir rantai dinding
+  let gest = null;
+  const pointers = new Set();
+  const models = new Map();           // id -> { name, buf, tpl, size }
+  const extra = new Set();            // pilihan tambahan (multi-select)
+  let lastQ = null, numBuf = '', walk = false, lastT = 0, saved = null;
+  const wk = {};
+  let multiMode = false, curLv = 0, nLv = 1;
+  const FH = 3.2;                      // tinggi antar lantai (m)
+  const lvOf = o => o.lv || 0;
+  const undoS = [], redoS = [];
+  const bg = { loaded: false, mesh: null, tex: null };
+  const src = document.createElement('canvas');
+  src.width = 4; src.height = 4;
+  let ghost = null;
+  const ghostPos = { x: 0, z: 0 };
+  let calib = { pts: [], marks: [], measured: 0 };
+  let hintTimer = null;
+
+  const fmt = v => Math.round(v * 100) / 100;
+  const snapV = v => { const s = +$('snap').value; return s > 0 ? Math.round(v / s) * s : v; };
+
+  // =====================================================================
+  //  Dialog Konfirmasi & Bagikan Link (Pengganti confirm/prompt di Canvas)
+  // =====================================================================
+  function askConfirm(msg, onYes, onNo) {
+    const box = $('modalBox');
+    $('modalTitle').textContent = 'Konfirmasi';
+    $('modalText').textContent = msg;
+    $('modalInput').style.display = 'none';
+    $('modalYes').textContent = 'Ya, Lanjutkan';
+    $('modalNo').textContent = 'Batal';
+    $('modalNo').style.display = '';
+    box.style.display = 'flex';
+    $('modalYes').onclick = () => { box.style.display = 'none'; if (onYes) onYes(); };
+    $('modalNo').onclick = () => { box.style.display = 'none'; if (onNo) onNo(); };
+  }
+  function showShareBox(url) {
+    const box = $('modalBox');
+    $('modalTitle').textContent = 'Salin Link Proyek';
+    $('modalText').textContent = 'Salin tautan proyek di bawah ini:';
+    const inp = $('modalInput');
+    inp.style.display = 'block';
+    inp.value = url;
+    $('modalYes').textContent = 'Tutup';
+    $('modalNo').style.display = 'none';
+    box.style.display = 'flex';
+    setTimeout(() => { inp.focus(); inp.select(); }, 50);
+    $('modalYes').onclick = () => { box.style.display = 'none'; };
+  }
+
+  // =====================================================================
+  //  Pembangun Tekstur PBR & Geometri Objek Realistis
+  // =====================================================================
+  function mat(c, opts) {
+    const o = Object.assign({ color: c, roughness: 0.65, metalness: 0.05, envMapIntensity: 1.0 }, opts || {});
+    const m = (o.clearcoat || o.transmission) ? new THREE.MeshPhysicalMaterial(o) : new THREE.MeshStandardMaterial(o);
+    m.userData = { baseEmissive: m.emissive ? m.emissive.getHex() : 0 };
+    return m;
+  }
+  function shade(c, f) {
+    const col = new THREE.Color(c);
+    col.r = Math.min(1, Math.max(0, col.r * f));
+    col.g = Math.min(1, Math.max(0, col.g * f));
+    col.b = Math.min(1, Math.max(0, col.b * f));
+    return col;
+  }
+
+  function textPlane(text, size, color) {
+    const px = 128;
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    ctx.font = 'bold ' + px + 'px system-ui, sans-serif';
+    const tw = Math.max(20, ctx.measureText(text || ' ').width);
+    c.width = Math.ceil(tw + 40);
+    c.height = Math.ceil(px * 1.4);
+    const x = c.getContext('2d');
+    x.font = 'bold ' + px + 'px system-ui, sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.fillStyle = color;
+    x.fillText(text || ' ', c.width / 2, c.height / 2);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4; tex.encoding = THREE.sRGBEncoding;
+    const m = new THREE.MeshBasicMaterial({ toneMapped: false, map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * c.width / c.height, size), m);
+    mesh.rotation.x = -Math.PI / 2;
+    return mesh;
+  }
+
+  let _wood = null, _woodBump = null, _wallBump = null, _fabricBump = null, _marble = null, _aoTex = null, _screenTex = null, _roofTex = null, _roofBump = null;
+  const _floorCache = {};
+
+  function woodTex() {
+    if (_wood) return _wood;
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, '#f7f1e8'); g.addColorStop(0.5, '#efe5d6'); g.addColorStop(1, '#f7f1e8');
+    x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+    // Serat kayu halus berlapis
+    for (let i = 0; i < 260; i++) {
+      const a = 0.03 + (i % 7) * 0.015;
+      x.strokeStyle = (i % 3 === 0) ? 'rgba(75,45,20,' + a + ')' : 'rgba(120,80,42,' + a + ')';
+      x.lineWidth = 0.7 + (i % 4) * 0.6;
+      const y = (i / 260) * 512;
+      x.beginPath(); x.moveTo(0, y);
+      const w1 = Math.sin(i * 0.4) * 14, w2 = Math.cos(i * 0.3) * 14;
+      x.bezierCurveTo(170, y + w1, 340, y + w2, 512, y);
+      x.stroke();
+    }
+    // Pori kayu mikro
+    for (let i = 0; i < 900; i++) {
+      x.fillStyle = 'rgba(65,38,15,0.04)';
+      x.fillRect((i * 73) % 512, (i * 137) % 512, 6 + (i % 10), 1);
+    }
+    _wood = new THREE.CanvasTexture(c);
+    _wood.wrapS = _wood.wrapT = THREE.RepeatWrapping;
+    _wood.encoding = THREE.sRGBEncoding;
+    _wood.anisotropy = 4;
+    _wood.userData = { shared: true };
+    return _wood;
+  }
+
+  function woodBumpTex() {
+    if (_woodBump) return _woodBump;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#808080'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 160; i++) {
+      x.strokeStyle = (i % 2) ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.14)';
+      x.lineWidth = 1 + (i % 2);
+      const y = (i / 160) * 256;
+      x.beginPath(); x.moveTo(0, y); x.bezierCurveTo(85, y + 4, 170, y - 4, 256, y); x.stroke();
+    }
+    _woodBump = new THREE.CanvasTexture(c);
+    _woodBump.wrapS = _woodBump.wrapT = THREE.RepeatWrapping;
+    _woodBump.userData = { shared: true };
+    return _woodBump;
+  }
+
+  function wallBumpTex() {
+    if (_wallBump) return _wallBump;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#808080'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 4000; i++) {
+      const v = 110 + ((i * 29) % 36);
+      x.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+      x.fillRect((i * 53) % 256, (i * 97) % 256, 2, 2);
+    }
+    _wallBump = new THREE.CanvasTexture(c);
+    _wallBump.wrapS = _wallBump.wrapT = THREE.RepeatWrapping;
+    _wallBump.repeat.set(3, 2);
+    _wallBump.userData = { shared: true };
+    return _wallBump;
+  }
+
+  function fabricBumpTex() {
+    if (_fabricBump) return _fabricBump;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    x.fillStyle = '#808080'; x.fillRect(0, 0, 128, 128);
+    x.fillStyle = 'rgba(255,255,255,0.18)';
+    for (let y = 0; y < 128; y += 4) for (let u = 0; u < 128; u += 4) {
+      if (((u + y) / 4) % 2 === 0) x.fillRect(u, y, 2, 3);
+      else x.fillRect(u, y, 3, 2);
+    }
+    _fabricBump = new THREE.CanvasTexture(c);
+    _fabricBump.wrapS = _fabricBump.wrapT = THREE.RepeatWrapping;
+    _fabricBump.repeat.set(6, 6);
+    _fabricBump.userData = { shared: true };
+    return _fabricBump;
+  }
+
+  function marbleTex() {
+    if (_marble) return _marble;
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const x = c.getContext('2d');
+    x.fillStyle = '#f8fafc'; x.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 18; i++) {
+      x.strokeStyle = i % 3 === 0 ? 'rgba(148,163,184,0.22)' : 'rgba(100,116,139,0.12)';
+      x.lineWidth = 1 + (i % 5) * 1.4;
+      x.beginPath();
+      let px = (i * 67) % 512, py = 0;
+      x.moveTo(px, py);
+      for (let s = 1; s <= 8; s++) {
+        px += Math.sin(i * 1.7 + s) * 45;
+        py = s * 64;
+        x.lineTo(px, py);
+      }
+      x.stroke();
+    }
+    _marble = new THREE.CanvasTexture(c);
+    _marble.wrapS = _marble.wrapT = THREE.RepeatWrapping;
+    _marble.encoding = THREE.sRGBEncoding;
+    _marble.userData = { shared: true };
+    return _marble;
+  }
+
+  function screenTex() {
+    if (_screenTex) return _screenTex;
+    const c = document.createElement('canvas'); c.width = 256; c.height = 144;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 256, 144);
+    g.addColorStop(0, '#0f172a'); g.addColorStop(0.5, '#1e3a8a'); g.addColorStop(1, '#0d9488');
+    x.fillStyle = g; x.fillRect(0, 0, 256, 144);
+    x.fillStyle = 'rgba(15,23,42,0.82)'; x.fillRect(14, 14, 150, 108);
+    x.fillStyle = '#38bdf8'; x.fillRect(22, 24, 55, 6);
+    x.fillStyle = '#a7f3d0'; x.fillRect(22, 36, 95, 5);
+    x.fillStyle = '#f472b6'; x.fillRect(30, 48, 75, 5);
+    x.fillStyle = '#e2e8f0'; x.fillRect(30, 60, 110, 5);
+    x.fillStyle = '#fbbf24'; x.fillRect(22, 72, 65, 5);
+    x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(174, 14, 68, 50); x.fillRect(174, 72, 68, 50);
+    x.strokeStyle = '#34d399'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(180, 52); x.lineTo(195, 38); x.lineTo(212, 44); x.lineTo(234, 24); x.stroke();
+    _screenTex = new THREE.CanvasTexture(c);
+    _screenTex.encoding = THREE.sRGBEncoding;
+    _screenTex.userData = { shared: true };
+    return _screenTex;
+  }
+
+  function roofTileTex() {
+    if (_roofTex) return { map: _roofTex, bump: _roofBump };
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const x = c.getContext('2d');
+    const cb = document.createElement('canvas'); cb.width = cb.height = 512;
+    const xb = cb.getContext('2d');
+    x.fillStyle = '#a84e2e'; x.fillRect(0, 0, 512, 512);
+    xb.fillStyle = '#808080'; xb.fillRect(0, 0, 512, 512);
+    const rows = 8, cols = 8, rw = 512 / cols, rh = 512 / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let k = 0; k < cols; k++) {
+        const u = k * rw, v = r * rh;
+        const gr = x.createLinearGradient(u, v, u + rw, v + rh);
+        gr.addColorStop(0, '#c2613d'); gr.addColorStop(0.55, '#9e4525'); gr.addColorStop(0.92, '#692a14'); gr.addColorStop(1, '#4a1c0c');
+        x.fillStyle = gr; x.fillRect(u + 1, v + 1, rw - 2, rh - 2);
+        const gb = xb.createLinearGradient(u, v, u + rw, v + rh);
+        gb.addColorStop(0, '#ffffff'); gb.addColorStop(0.75, '#707070'); gb.addColorStop(1, '#151515');
+        xb.fillStyle = gb; xb.fillRect(u, v, rw, rh);
+      }
+    }
+    _roofTex = new THREE.CanvasTexture(c); _roofTex.wrapS = _roofTex.wrapT = THREE.RepeatWrapping; _roofTex.encoding = THREE.sRGBEncoding; _roofTex.anisotropy = 4; _roofTex.userData = { shared: true };
+    _roofBump = new THREE.CanvasTexture(cb); _roofBump.wrapS = _roofBump.wrapT = THREE.RepeatWrapping; _roofBump.userData = { shared: true };
+    return { map: _roofTex, bump: _roofBump };
+  }
+
+  function aoTex() {
+    if (_aoTex) return _aoTex;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 12, 64, 64, 62);
+    g.addColorStop(0, 'rgba(0,0,0,0.46)');
+    g.addColorStop(0.55, 'rgba(0,0,0,0.22)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    _aoTex = new THREE.CanvasTexture(c);
+    _aoTex.userData = { shared: true };
+    return _aoTex;
+  }
+
+  function floorTex(o, w, d) {
+    const kind = o.mat || 'polos';
+    if (!_floorCache[kind]) {
+      const c = document.createElement('canvas'); c.width = c.height = 512;
+      const x = c.getContext('2d');
+      const cb = document.createElement('canvas'); cb.width = cb.height = 512;
+      const xb = cb.getContext('2d');
+      x.fillStyle = '#ffffff'; x.fillRect(0, 0, 512, 512);
+      xb.fillStyle = '#909090'; xb.fillRect(0, 0, 512, 512);
+
+      if (kind === 'kayu') {
+        const planks = 6, ph = 512 / planks;
+        for (let r = 0; r < planks; r++) {
+          const y = r * ph, off = (r % 2) * 256 + ((r * 73) % 90);
+          for (let s = -1; s <= 1; s++) {
+            const px = s * 256 + (off % 256), pw = 256;
+            const tone = 228 + ((r * 19 + s * 31) % 24);
+            x.fillStyle = 'rgb(' + tone + ',' + (tone - 14) + ',' + (tone - 32) + ')';
+            x.fillRect(px, y, pw, ph);
+            // Serat kayu tiap papan
+            for (let f = 0; f < 22; f++) {
+              x.strokeStyle = 'rgba(95,60,28,0.08)';
+              x.lineWidth = 1;
+              const fy = y + (f / 22) * ph;
+              x.beginPath(); x.moveTo(px, fy); x.bezierCurveTo(px + 80, fy + 2, px + 170, fy - 2, px + pw, fy); x.stroke();
+            }
+            x.strokeStyle = '#6b533b'; x.lineWidth = 2.5;
+            x.strokeRect(px, y, pw, ph);
+            xb.strokeStyle = '#181818'; xb.lineWidth = 4;
+            xb.strokeRect(px, y, pw, ph);
+          }
+        }
+      } else if (kind === 'keramik' || kind === 'marmer') {
+        // Ubin keramik/marmer mewah dengan urat halus & nat presisi
+        x.fillStyle = '#fafafa'; x.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 16; i++) {
+          x.strokeStyle = kind === 'marmer' ? 'rgba(120,132,150,0.22)' : 'rgba(148,163,184,0.11)';
+          x.lineWidth = 1 + (i % 4) * 1.3;
+          x.beginPath();
+          let ux = (i * 53) % 512, uy = 0;
+          x.moveTo(ux, uy);
+          for (let k = 1; k <= 6; k++) { ux += Math.sin(i + k) * 40; uy = k * 85; x.lineTo(ux, uy); }
+          x.stroke();
+        }
+        const step = kind === 'marmer' ? 256 : 128;
+        x.strokeStyle = '#cbd5e1'; x.lineWidth = 3;
+        xb.strokeStyle = '#202020'; xb.lineWidth = 5;
+        for (let p = 0; p <= 512; p += step) {
+          x.beginPath(); x.moveTo(p, 0); x.lineTo(p, 512); x.stroke();
+          x.beginPath(); x.moveTo(0, p); x.lineTo(512, p); x.stroke();
+          xb.beginPath(); xb.moveTo(p, 0); xb.lineTo(p, 512); xb.stroke();
+          xb.beginPath(); xb.moveTo(0, p); xb.lineTo(512, p); xb.stroke();
+        }
+      } else if (kind === 'beton') {
+        x.fillStyle = '#e5e7eb'; x.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 3500; i++) {
+          const a = (i % 5) * 0.018;
+          x.fillStyle = (i % 2) ? 'rgba(60,65,75,' + a + ')' : 'rgba(255,255,255,' + a + ')';
+          const sz = 2 + (i % 6);
+          x.fillRect((i * 79) % 512, (i * 131) % 512, sz, sz);
+          xb.fillStyle = (i % 2) ? 'rgba(40,40,40,0.12)' : 'rgba(220,220,220,0.12)';
+          xb.fillRect((i * 79) % 512, (i * 131) % 512, sz, sz);
+        }
+        x.strokeStyle = 'rgba(100,116,139,0.25)'; x.lineWidth = 2;
+        x.strokeRect(0, 0, 256, 256); x.strokeRect(256, 256, 256, 256);
+      } else if (kind === 'karpet') {
+        x.fillStyle = '#f1f5f9'; x.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 6000; i++) {
+          x.fillStyle = (i % 2) ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)';
+          x.fillRect((i * 41) % 512, (i * 89) % 512, 3, 2);
+          xb.fillStyle = (i % 2) ? '#404040' : '#c0c0c0';
+          xb.fillRect((i * 41) % 512, (i * 89) % 512, 3, 3);
+        }
+      } else {
+        // Polos: Ubin arsitektural satin halus (60x60cm) agar tetap realistis
+        x.fillStyle = '#fcfcfc'; x.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 900; i++) {
+          x.fillStyle = 'rgba(100,116,139,0.025)';
+          x.fillRect((i * 61) % 512, (i * 107) % 512, 3, 3);
+        }
+        x.strokeStyle = 'rgba(148,163,184,0.22)'; x.lineWidth = 2;
+        xb.strokeStyle = '#555555'; xb.lineWidth = 3;
+        for (let p = 0; p <= 512; p += 256) {
+          x.beginPath(); x.moveTo(p, 0); x.lineTo(p, 512); x.stroke();
+          x.beginPath(); x.moveTo(0, p); x.lineTo(512, p); x.stroke();
+          xb.beginPath(); xb.moveTo(p, 0); xb.lineTo(p, 512); xb.stroke();
+          xb.beginPath(); xb.moveTo(0, p); xb.lineTo(512, p); xb.stroke();
+        }
+      }
+      _floorCache[kind] = { c: c, cb: cb };
+    }
+    const srcC = _floorCache[kind];
+    const t = new THREE.CanvasTexture(srcC.c);
+    const tb = new THREE.CanvasTexture(srcC.cb);
+    t.wrapS = t.wrapT = tb.wrapS = tb.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = 4;
+    const scale = kind === 'kayu' ? 1.6 : kind === 'marmer' ? 1.8 : 1.2;
+    const rx = Math.max(1, w / scale), rz = Math.max(1, d / scale);
+    t.repeat.set(rx, rz); tb.repeat.set(rx, rz);
+    if (kind === 'keramik' || kind === 'marmer') return { map: t, bumpMap: tb, bumpScale: 0.008, roughness: 0.14, metalness: 0.06, envMapIntensity: 1.35 };
+    if (kind === 'kayu') return { map: t, bumpMap: tb, bumpScale: 0.014, roughness: 0.32, metalness: 0.04, envMapIntensity: 1.15 };
+    if (kind === 'beton') return { map: t, bumpMap: tb, bumpScale: 0.016, roughness: 0.58, metalness: 0.03 };
+    if (kind === 'karpet') return { map: t, bumpMap: tb, bumpScale: 0.022, roughness: 0.92, metalness: 0.0 };
+    return { map: t, bumpMap: tb, bumpScale: 0.004, roughness: 0.36, metalness: 0.03, envMapIntensity: 1.05 };
+  }
+
+  function buildGroup(o, ghostMode) {
+    const g = new THREE.Group();
+    const mats = [];
+    const M = (c, opts) => {
+      const m = mat(c, opts);
+      if (ghostMode) { m.transparent = true; m.opacity = 0.5; }
+      mats.push(m);
+      return m;
+    };
+    const add = (mesh, px, py, pz) => {
+      mesh.position.set(px, py, pz);
+      mesh.castShadow = !ghostMode;
+      mesh.receiveShadow = true;
+      mesh.userData.id = o.id;
+      g.add(mesh);
+      return mesh;
+    };
+    const box = (sx, sy, sz, px, py, pz, m) => add(new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m), px, py, pz);
+    const dark = () => M('#27303f', { roughness: 0.4, metalness: 0.5 });
+    const chrome = () => M('#e2e8f0', { metalness: 0.92, roughness: 0.14, envMapIntensity: 1.5 });
+    const brass = () => M('#d4af37', { metalness: 0.88, roughness: 0.2, envMapIntensity: 1.4 });
+    const woodM = (col, r) => M(col, { map: woodTex(), bumpMap: woodBumpTex(), bumpScale: 0.01, roughness: r || 0.38, metalness: 0.04 });
+    const fabricM = (col, r) => M(col, { bumpMap: fabricBumpTex(), bumpScale: 0.014, roughness: r || 0.86, metalness: 0.02 });
+    const cyl = (rt, rb, hh, px, py, pz, m, rx, rz) => { const c = add(new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, hh, 24), m), px, py, pz); if (rx) c.rotation.x = rx; if (rz) c.rotation.z = rz; return c; };
+    const sph = (rx, ry, rz, px, py, pz, m) => { const e = add(new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18), m), px, py, pz); e.scale.set(rx, ry, rz); return e; };
+    const addAO = (sw, sd, op) => {
+      if (ghostMode) return;
+      const m = new THREE.MeshBasicMaterial({ map: aoTex(), transparent: true, opacity: op || 0.42, depthWrite: false });
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(sw * 1.28, sd * 1.28), m);
+      p.rotation.x = -Math.PI / 2;
+      p.position.set(0, 0.032, 0);
+      p.userData.id = o.id;
+      g.add(p);
+    };
+
+    if (o.type === 'wall') {
+      const dx = o.x2 - o.x1, dz = o.z2 - o.z1, L = Math.hypot(dx, dz);
+      g.position.set((o.x1 + o.x2) / 2, 0, (o.z1 + o.z2) / 2);
+      g.rotation.y = -Math.atan2(dz, dx);
+      const wb = wallBumpTex();
+      const wm = M(o.color, { bumpMap: wb, bumpScale: 0.006, roughness: 0.72 });
+      const wm2 = o.c2 ? M(o.c2, { bumpMap: wb, bumpScale: 0.006, roughness: 0.72 }) : null;
+      const fr = M('#f8fafc', { roughness: 0.35, metalness: 0.08 });
+      const capM = M(shade(o.color, 0.92), { roughness: 0.55 });
+      const gl = M('#bfe6ff', { transparent: true, opacity: 0.34, roughness: 0.04, metalness: 0.18, clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 1.6 });
+      const dm = woodM('#8b5a2b', 0.36);
+      const dmPanel = woodM('#734820', 0.42);
+      const hdlM = chrome();
+      const ext = o.t / 2;
+      const seg = (a, b, y0, y1, m, th) => {
+        if (b - a < 1e-4 || y1 - y0 < 1e-4) return;
+        box(b - a, y1 - y0, th || o.t, (a + b) / 2 - L / 2, (y0 + y1) / 2, 0, (m === wm && wm2) ? [wm, wm, wm, capM, wm, wm2] : m);
+      };
+      const baseboard = (a, b) => {
+        if (b - a < 0.04) return;
+        seg(a, b, 0, 0.095, fr, o.t + 0.022);
+        seg(a, b, 0.095, 0.11, fr, o.t + 0.012);
+      };
+      const ops = (o.op || []).map(p => ({ p: p, a: Math.max(0, p.s - p.w / 2), b: Math.min(L, p.s + p.w / 2) }))
+        .filter(q => q.b - q.a > 0.05).sort((u, v) => u.a - v.a);
+      let cur = -ext;
+      ops.forEach(q => {
+        const a = Math.max(q.a, cur);
+        if (q.b <= a) return;
+        seg(cur, a, 0, o.h, wm); baseboard(cur, a);
+        const door = q.p.k === 'pintu';
+        const y0 = door ? 0 : (q.p.sill != null ? q.p.sill : 0.9);
+        const y1 = Math.min(o.h, y0 + (q.p.hh || (door ? 2.1 : 1.2)));
+        seg(a, q.b, y1, o.h, wm);
+        const ft = 0.055, tt = o.t + 0.045, mid = (a + q.b) / 2, ow = q.b - a, oh = y1 - y0;
+        // Kusen kiri, kanan, atas
+        seg(a, a + ft, y0, y1, fr, tt);
+        seg(q.b - ft, q.b, y0, y1, fr, tt);
+        seg(a, q.b, y1 - ft, y1, fr, tt);
+
+        if (door) {
+          // Ambang pintu bawah (threshold)
+          seg(a, q.b, 0, 0.018, M('#94a3b8', { metalness: 0.6, roughness: 0.3 }), o.t + 0.02);
+          // Daun pintu kayu + panel timbul/cekung
+          const dw = ow - ft * 2, dh = oh - ft;
+          if (dw > 0.15 && dh > 0.4) {
+            seg(a + ft, q.b - ft, 0.018, y1 - ft, dm, 0.046);
+            const pw = Math.max(0.08, dw - 0.18), ph1 = dh * 0.42, ph2 = dh * 0.32;
+            box(pw, ph1, 0.056, mid - L / 2, y0 + dh * 0.68, 0, dmPanel);
+            box(pw, ph2, 0.056, mid - L / 2, y0 + dh * 0.24, 0, dmPanel);
+            // Engsel pintu (3 buah)
+            [0.25, 0.55, 0.85].forEach(f => cyl(0.009, 0.009, 0.07, a + ft - L / 2 + 0.005, y0 + dh * f, 0.026, hdlM));
+            // Gagang pintu lever + plat kunci di kedua sisi
+            const hx = q.b - ft - 0.09 - L / 2, hy = Math.min(y1 - 0.2, 1.02);
+            box(0.035, 0.15, 0.06, hx, hy, 0, hdlM);
+            [-1, 1].forEach(side => {
+              cyl(0.01, 0.01, 0.045, hx, hy + 0.02, side * 0.04, hdlM, Math.PI / 2, 0);
+              box(0.11, 0.022, 0.018, hx - 0.04, hy + 0.02, side * 0.062, hdlM);
+            });
+          }
+        } else {
+          // Dinding bawah jendela + plint
+          seg(a, q.b, 0, y0, wm); baseboard(a, q.b);
+          // Ambang jendela (window sill) menonjol
+          seg(a - 0.02, q.b + 0.02, y0, y0 + ft, fr, tt + 0.065);
+          // Kaca ganda realistis + bingkai daun jendela & mullion
+          seg(a + ft, q.b - ft, y0 + ft, y1 - ft, gl, 0.026);
+          const nPanes = ow > 1.35 ? 2 : 1;
+          if (nPanes === 2) seg(mid - 0.02, mid + 0.02, y0 + ft, y1 - ft, fr, 0.055);
+          // Tirai / blind tipis bagian atas jendela
+          seg(a + ft, q.b - ft, y1 - ft - 0.06, y1 - ft, M('#e2e8f0', { roughness: 0.7 }), 0.065);
+        }
+        cur = q.b;
+      });
+      seg(cur, L + ext, 0, o.h, wm); baseboard(cur, L + ext);
+    } else if (o.type === 'room') {
+      const w = Math.abs(o.x2 - o.x1), d = Math.abs(o.z2 - o.z1);
+      g.position.set((o.x1 + o.x2) / 2, 0, (o.z1 + o.z2) / 2);
+      box(w, 0.03, d, 0, 0.015, 0, M(o.color, floorTex(o, w, d)));
+      {
+        const tp = textPlane((o.label ? o.label + " · " : "") + fmt(w * d) + " m²", o.ls || 0.7, '#1f2937');
+        const maxW = Math.max(0.5, w * 0.9);
+        const tw = tp.geometry.parameters.width;
+        if (tw > maxW) tp.scale.setScalar(maxW / tw);
+        tp.position.y = 0.036;
+        tp.userData.id = o.id;
+        g.add(tp);
+      }
+    } else if (o.type === 'teks') {
+      g.position.set(o.x, 0, o.z);
+      g.rotation.y = o.rot * Math.PI / 180;
+      const tp = textPlane(o.text, o.size || 0.6, o.color);
+      tp.position.y = 0.02;
+      tp.userData.id = o.id;
+      g.add(tp);
+    } else {
+      g.position.set(o.x, 0, o.z);
+      g.rotation.y = o.rot * Math.PI / 180;
+      const w = o.w, d = o.d, h = o.h;
+      if (o.type !== 'lubang') addAO(w, d, o.type === 'mobil' ? 0.55 : 0.42);
+
+      switch (CAT[o.type] && CAT[o.type].model ? '__model' : o.type) {
+        case '__model': {
+          const t = models.get(CAT[o.type].model);
+          if (!t) { box(w, h, d, 0, h / 2, 0, M('#94a3b8', { transparent: true, opacity: 0.5 })); break; }
+          const inst = t.tpl.clone(true);
+          inst.scale.set(w / t.size.x, h / t.size.y, d / t.size.z);
+          inst.traverse(n => {
+            if (!n.isMesh) return;
+            n.material = Array.isArray(n.material) ? n.material.map(x => x.clone()) : n.material.clone();
+            (Array.isArray(n.material) ? n.material : [n.material]).forEach(x => {
+              if (ghostMode) { x.transparent = true; x.opacity = 0.5; }
+              x.userData = { baseEmissive: x.emissive ? x.emissive.getHex() : 0 };
+              mats.push(x);
+            });
+            n.castShadow = !ghostMode; n.receiveShadow = true; n.userData.id = o.id;
+          });
+          g.add(inst);
+          break;
+        }
+        case 'meja': case 'rapat': {
+          const top = 0.036, lh = h - top;
+          const wd = woodM(o.color, 0.32), wdDark = woodM(shade(o.color, 0.82), 0.4);
+          const mt = M('#1e242c', { metalness: 0.75, roughness: 0.28 });
+          const ch = chrome();
+          // Daun meja dengan bevel tepi bawah
+          box(w, top * 0.75, d, 0, h - top * 0.375, 0, wd);
+          box(w - 0.02, top * 0.25, d - 0.02, 0, h - top * 0.875, 0, wdDark);
+          if (o.type === 'rapat') {
+            // Kaki meja rapat arsitektural + panel kabel tengah
+            [-1, 1].forEach(i => {
+              box(0.1, lh, d * 0.62, i * (w / 2 - 0.45), lh / 2, 0, mt);
+              box(0.16, 0.02, d * 0.72, i * (w / 2 - 0.45), 0.01, 0, ch);
+            });
+            box(w * 0.68, 0.06, 0.06, 0, h - 0.18, 0, mt);
+            // Panel stopkontak tengah meja rapat & laptop tipis
+            box(w * 0.32, 0.006, 0.11, 0, h + 0.003, 0, mt);
+            if (w >= 1.8) {
+              [-w * 0.24, w * 0.24].forEach((lx, idx) => {
+                const sz = idx === 0 ? 1 : -1;
+                box(0.32, 0.01, 0.22, lx, h + 0.005, sz * d * 0.26, ch);
+                const lid = box(0.32, 0.2, 0.008, lx, h + 0.1, sz * (d * 0.26 - sz * 0.1), ch);
+                lid.rotation.x = sz * 0.22;
+              });
+            }
+          } else {
+            // Rangka kaki meja kerja modern + sepatu krom
+            [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(q => {
+              const lx = q[0] * (w / 2 - 0.045), lz = q[1] * (d / 2 - 0.045);
+              box(0.042, lh - 0.02, 0.042, lx, lh / 2 + 0.01, lz, mt);
+              cyl(0.026, 0.026, 0.02, lx, 0.01, lz, ch);
+            });
+            // Laci 3 tingkat beserta celah & tarikan aluminium
+            const dw = Math.min(0.42, w * 0.32), dx = w / 2 - dw / 2 - 0.05;
+            box(dw, 0.52, d - 0.1, dx, h - top - 0.27, 0, wdDark);
+            [0.16, 0, -0.16].forEach(dy => {
+              box(dw - 0.02, 0.15, 0.018, dx, h - top - 0.27 + dy, d / 2 - 0.045, wd);
+              box(0.12, 0.012, 0.022, dx, h - top - 0.27 + dy + 0.03, d / 2 - 0.03, ch);
+            });
+            // Modesty panel depan
+            box(w - dw - 0.14, 0.32, 0.018, -dw / 2, h - top - 0.2, -d / 2 + 0.05, wdDark);
+            // Set komputer lengkap (Monitor layar menyala, keyboard, mouse, mousepad, cangkir kopi, lampu meja)
+            if (w >= 1.0) {
+              const mx = -w * 0.14, mz = -d * 0.22;
+              // Dudukan & leher monitor
+              box(0.18, 0.01, 0.14, mx, h + 0.005, mz - 0.02, mt);
+              cyl(0.018, 0.022, 0.16, mx, h + 0.08, mz - 0.04, ch);
+              // Bingkai & layar monitor menyala
+              const mw = Math.min(0.58, w * 0.42), mh = 0.33;
+              box(mw, mh, 0.022, mx, h + 0.29, mz, M('#0f172a', { roughness: 0.25, metalness: 0.5 }));
+              box(mw - 0.024, mh - 0.024, 0.006, mx, h + 0.29, mz + 0.011, M('#ffffff', { map: screenTex(), emissive: 0x1e3a5f, roughness: 0.12 }));
+              // Deskmat, keyboard, dan mouse
+              box(0.56, 0.004, 0.26, mx + 0.04, h + 0.002, d * 0.15, M('#1e293b', { roughness: 0.9 }));
+              box(0.36, 0.014, 0.12, mx, h + 0.01, d * 0.14, M('#e2e8f0', { roughness: 0.4 }));
+              box(0.34, 0.006, 0.095, mx, h + 0.018, d * 0.14, M('#334155', { roughness: 0.6 }));
+              sph(0.032, 0.018, 0.052, mx + 0.24, h + 0.012, d * 0.15, M('#f8fafc', { roughness: 0.3 }));
+              // Cangkir kopi keramik
+              cyl(0.038, 0.032, 0.09, w * 0.28, h + 0.045, d * 0.12, M('#f8fafc', { roughness: 0.15 }));
+              cyl(0.033, 0.033, 0.01, w * 0.28, h + 0.086, d * 0.12, M('#3e2723', { roughness: 0.2 }));
+            }
+          }
+          break;
+        }
+        case 'kursi': {
+          const fm = fabricM(o.color, 0.82), mt = M('#1e242c', { metalness: 0.65, roughness: 0.32 }), ch = chrome();
+          const sh = h * 0.48, L = Math.min(w, d) * 0.48;
+          // Silinder gas-lift krom & bintang 5 kaki roda
+          cyl(0.026, 0.026, sh - 0.09, 0, (sh - 0.09) / 2 + 0.055, 0, ch);
+          cyl(0.038, 0.038, 0.09, 0, 0.1, 0, mt);
+          for (let i = 0; i < 5; i++) {
+            const a = i * Math.PI * 2 / 5;
+            const arm = box(L, 0.026, 0.038, Math.cos(a) * L / 2, 0.065, Math.sin(a) * L / 2, ch);
+            arm.rotation.y = -a;
+            cyl(0.026, 0.026, 0.032, Math.cos(a) * (L - 0.02), 0.026, Math.sin(a) * (L - 0.02), mt, 0, Math.PI / 2);
+          }
+          // Bantalan dudukan berkontur
+          sph(w * 0.48, 0.055, d * 0.46, 0, sh, 0.02, fm);
+          box(w * 0.78, 0.03, d * 0.72, 0, sh - 0.03, 0.01, mt);
+          // tulang belakang & sandaran ergonomis + lumbar support
+          box(0.05, h - sh - 0.08, 0.025, 0, sh + (h - sh) * 0.45, -d / 2 + 0.025, mt).rotation.x = -0.1;
+          const back = box(w * 0.86, (h - sh) * 0.82, 0.045, 0, sh + (h - sh) * 0.52, -d / 2 + 0.055, fm);
+          back.rotation.x = -0.1;
+          box(w * 0.76, 0.06, 0.055, 0, sh + (h - sh) * 0.28, -d / 2 + 0.05, mt);
+          // Sandaran tangan melengkung
+          [-1, 1].forEach(i => {
+            box(0.028, 0.19, 0.035, i * (w / 2 - 0.025), sh + 0.095, -0.02, ch);
+            sph(0.04, 0.018, 0.14, i * (w / 2 - 0.025), sh + 0.195, 0.01, mt);
+          });
+          break;
+        }
+        case 'sofa': {
+          const cm = fabricM(o.color, 0.85), am = fabricM(shade(o.color, 0.88), 0.88);
+          const legM = woodM('#5c4028', 0.35), pipM = fabricM(shade(o.color, 0.74), 0.9);
+          const aw = Math.min(0.18, w * 0.11), sh = h * 0.43, iw = w - aw * 2, n = w > 1.55 ? 3 : 2, cw = iw / n;
+          // Kaki kayu meruncing + aksen kuningan
+          [-1, 1].forEach(ix => [-1, 1].forEach(iz => {
+            cyl(0.028, 0.018, 0.12, ix * (w / 2 - 0.09), 0.06, iz * (d / 2 - 0.09), legM);
+            cyl(0.02, 0.018, 0.03, ix * (w / 2 - 0.09), 0.015, iz * (d / 2 - 0.09), brass());
+          }));
+          // Rangka bawah & sandaran belakang
+          box(iw, sh - 0.18, d * 0.9, 0, 0.12 + (sh - 0.18) / 2, 0.02, am);
+          box(w - 0.04, h * 0.72, 0.14, 0, 0.12 + h * 0.36, -d / 2 + 0.08, am);
+          // Bantalan dudukan & sandaran empuk per modul
+          for (let i = 0; i < n; i++) {
+            const cx = -iw / 2 + cw * (i + 0.5);
+            box(cw - 0.018, 0.13, d * 0.8, cx, sh - 0.01, d * 0.06, cm);
+            sph(cw * 0.48, 0.045, d * 0.39, cx, sh + 0.045, d * 0.06, cm);
+            box(cw - 0.015, 0.012, d * 0.81, cx, sh + 0.052, d * 0.06, pipM);
+            const bc = sph(cw * 0.47, (h - sh) * 0.52, 0.13, cx, sh + (h - sh) * 0.48, -d / 2 + 0.22, cm);
+            bc.rotation.x = -0.18;
+          }
+          // Lengan sofa empuk
+          [-1, 1].forEach(i => {
+            const ax = i * (w / 2 - aw / 2);
+            box(aw, h * 0.58 - 0.12, d * 0.94, ax, 0.12 + (h * 0.58 - 0.12) / 2, 0.01, am);
+            cyl(aw * 0.52, aw * 0.52, d * 0.94, ax, h * 0.58, 0.01, cm, Math.PI / 2, 0);
+          });
+          // Bantal hias (throw pillows) kontras
+          const pCol1 = fabricM('#f59e0b', 0.85), pCol2 = fabricM('#f1f5f9', 0.85);
+          [-1, 1].forEach((i, idx) => {
+            const p = sph(0.16, 0.15, 0.07, i * (iw / 2 - 0.18), sh + 0.16, -d * 0.1, idx === 0 ? pCol1 : pCol2);
+            p.rotation.z = i * 0.28; p.rotation.y = -i * 0.35;
+          });
+          break;
+        }
+        case 'lemari': {
+          const bm = woodM(o.color, 0.36), dm = woodM(shade(o.color, 1.06), 0.32), trimM = woodM(shade(o.color, 0.82), 0.4);
+          const hm = brass(), n = w > 0.75 ? 2 : 1, dw = (w - 0.04) / n;
+          // Plint bawah, bodi utama, dan mahkota atas (crown molding)
+          box(w - 0.03, 0.08, d - 0.03, 0, 0.04, -0.01, trimM);
+          box(w, h - 0.12, d, 0, 0.08 + (h - 0.12) / 2, 0, bm);
+          box(w + 0.03, 0.04, d + 0.03, 0, h - 0.02, 0.005, trimM);
+          for (let i = 0; i < n; i++) {
+            const cx = -(w - 0.04) / 2 + dw * (i + 0.5), dh = h - 0.18, cy = 0.08 + dh / 2 + 0.01;
+            box(dw - 0.01, dh, 0.02, cx, cy, d / 2 + 0.008, dm);
+            // Panel bingkai pintu lemari
+            box(dw - 0.09, dh * 0.86, 0.008, cx, cy, d / 2 + 0.02, trimM);
+            const hx = cx + (n === 1 ? dw * 0.36 : (i === 0 ? dw * 0.38 : -dw * 0.38));
+            cyl(0.008, 0.008, 0.22, hx, h * 0.52, d / 2 + 0.032, hm);
+          }
+          break;
+        }
+        case 'rak': {
+          const n = Math.max(2, Math.round(h / 1.45));
+          const um = M(o.color, { metalness: 0.55, roughness: 0.35 }), bm = M('#f59e0b', { metalness: 0.45, roughness: 0.35 });
+          const sm = M('#cbd5e1', { metalness: 0.65, roughness: 0.4 }), palM = woodM('#c2925a', 0.6), boxM = M('#d4a96a', { roughness: 0.78 });
+          // Tiang vertikal + pelat kaki + bracing diagonal samping
+          [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(s => {
+            const px = s[0] * (w / 2 - 0.04), pz = s[1] * (d / 2 - 0.04);
+            box(0.075, h, 0.075, px, h / 2, pz, um);
+            box(0.14, 0.015, 0.14, px, 0.008, pz, dark());
+          });
+          [-1, 1].forEach(sx => {
+            for (let b = 0; b < n; b++) {
+              const y0 = 0.25 + b * (h - 0.4) / n, y1 = y0 + (h - 0.4) / n;
+              box(0.03, 0.03, d - 0.1, sx * (w / 2 - 0.04), y0, 0, um);
+              const diag = box(0.025, 0.025, Math.hypot(d - 0.1, y1 - y0), sx * (w / 2 - 0.04), (y0 + y1) / 2, 0, um);
+              diag.rotation.x = (b % 2 ? 1 : -1) * Math.atan2(y1 - y0, d - 0.1);
+            }
+          });
+          for (let l = 0; l < n; l++) {
+            const y = 0.22 + l * (h - 0.38) / Math.max(1, n - 1);
+            box(w - 0.12, 0.11, 0.05, 0, y, d / 2 - 0.04, bm);
+            box(w - 0.12, 0.11, 0.05, 0, y, -(d / 2 - 0.04), bm);
+            box(w - 0.14, 0.028, d - 0.08, 0, y + 0.06, 0, sm);
+            // Contoh muatan pallet + kardus di ambalan bawah
+            if (l < n - 1 && w >= 1.8) {
+              [-w * 0.24, w * 0.24].forEach((px, idx) => {
+                box(w * 0.38, 0.09, d * 0.82, px, y + 0.12, 0, palM);
+                box(w * 0.34, 0.42, d * 0.74, px, y + 0.37, 0, idx % 2 ? boxM : M('#bf9456', { roughness: 0.8 }));
+              });
+            }
+          }
+          break;
+        }
+        case 'pallet': {
+          const wm = woodM(o.color, 0.62), dk = 0.022, bh = h - dk * 2;
+          // 7 papan atas + 3 balok penyangga + 3 papan bawah (standar Euro Pallet)
+          for (let i = 0; i < 7; i++) {
+            const pz = -d / 2 + 0.06 + i * (d - 0.12) / 6;
+            box(w, dk, 0.1, 0, h - dk / 2, pz, wm);
+          }
+          [-1, 0, 1].forEach(iz => {
+            const pz = iz * (d / 2 - 0.07);
+            box(w, dk, 0.12, 0, dk / 2, pz, wm);
+            [-1, 0, 1].forEach(ix => box(0.14, bh, 0.12, ix * (w / 2 - 0.08), dk + bh / 2, pz, wm));
+          });
+          break;
+        }
+        case 'boks': {
+          const bm = M(o.color, { bumpMap: wallBumpTex(), bumpScale: 0.008, roughness: 0.82 });
+          const tapeM = M(shade(o.color, 0.76), { roughness: 0.35 });
+          box(w, h, d, 0, h / 2, 0, bm);
+          box(w * 0.13, 0.006, d + 0.006, 0, h + 0.002, 0, tapeM);
+          box(w * 0.13, 0.09, 0.006, 0, h - 0.045, d / 2 + 0.003, tapeM);
+          box(w * 0.13, 0.09, 0.006, 0, h - 0.045, -d / 2 - 0.003, tapeM);
+          // Label pengiriman putih di sisi depan
+          box(w * 0.28, h * 0.24, 0.005, w * 0.22, h * 0.62, d / 2 + 0.003, M('#f8fafc', { roughness: 0.5 }));
+          break;
+        }
+        case 'tanaman': {
+          const r = Math.min(w, d) / 2;
+          const potM = M('#d6cec2', { bumpMap: wallBumpTex(), bumpScale: 0.008, roughness: 0.45 });
+          const soilM = M('#3b2818', { roughness: 0.95 });
+          const trunkM = woodM('#5c4028', 0.75);
+          const l1 = M(o.color, { roughness: 0.42, metalness: 0.05 });
+          const l2 = M(shade(o.color, 1.18), { roughness: 0.38, metalness: 0.05 });
+          const l3 = M(shade(o.color, 0.82), { roughness: 0.48 });
+          // Tatakan bawah & pot keramik berbibir tebal
+          cyl(r * 0.64, r * 0.58, 0.03, 0, 0.015, 0, potM);
+          cyl(r * 0.76, r * 0.56, h * 0.32, 0, h * 0.16 + 0.02, 0, potM);
+          cyl(r * 0.8, r * 0.78, 0.035, 0, h * 0.32, 0, potM);
+          cyl(r * 0.71, r * 0.71, 0.02, 0, h * 0.325, 0, soilM);
+          // Batang bercabang alami
+          [-0.04, 0.03, 0.01].forEach((ox, idx) => {
+            const st = cyl(0.016, 0.024, h * 0.48, ox, h * 0.52, (idx - 1) * 0.03, trunkM);
+            st.rotation.z = (idx - 1) * 0.14;
+          });
+          // Rumpun dedaunan tropis berlapis
+          for (let i = 0; i < 18; i++) {
+            const a = i * 2.39996, tier = i / 18;
+            const rr = r * (0.18 + 0.72 * Math.sin(tier * Math.PI));
+            const ly = h * (0.38 + 0.56 * tier);
+            const lm = i % 3 === 0 ? l2 : (i % 3 === 1 ? l1 : l3);
+            const lf = sph(r * 0.36, h * 0.055, r * 0.21, Math.cos(a) * rr, ly, Math.sin(a) * rr, lm);
+            lf.rotation.y = -a;
+            lf.rotation.z = 0.28 + (1 - tier) * 0.35;
+          }
+          break;
+        }
+        case 'kasur': {
+          const fm = woodM('#5c402b', 0.38), headM = fabricM('#475569', 0.85);
+          const mt = fabricM('#f8fafc', 0.82), dv = fabricM(o.color, 0.84), sheetM = fabricM('#ffffff', 0.78);
+          const pill1 = fabricM('#ffffff', 0.8), pill2 = fabricM(shade(o.color, 0.78), 0.85);
+          // Kaki dipan & rangka kayu solid
+          [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(q => cyl(0.032, 0.022, 0.14, q[0] * (w / 2 - 0.06), 0.07, q[1] * (d / 2 - 0.06), fm));
+          box(w + 0.04, 0.14, d + 0.04, 0, 0.2, 0, fm);
+          // Kasur springbed empuk + lipatan seprai atas + bedcover/duvet
+          box(w - 0.04, 0.22, d - 0.06, 0, 0.36, 0.01, mt);
+          sph(w * 0.48, 0.04, d * 0.47, 0, 0.46, 0.01, mt);
+          box(w + 0.01, 0.16, d * 0.64, 0, 0.43, d * 0.16, dv);
+          box(w + 0.015, 0.045, d * 0.12, 0, 0.495, -d * 0.13, sheetM);
+          // Sandaran kepala (headboard) berlapis panel empuk
+          const hbH = Math.max(0.95, h * 1.75);
+          box(w + 0.08, hbH, 0.08, 0, hbH / 2, -d / 2 - 0.02, fm);
+          const nP = w > 1.3 ? 4 : 2, pw = (w - 0.06) / nP;
+          for (let i = 0; i < nP; i++) {
+            box(pw - 0.015, hbH - 0.26, 0.045, -(w - 0.06) / 2 + pw * (i + 0.5), hbH * 0.56, -d / 2 + 0.025, headM);
+          }
+          // 4 Bantal tidur & bantal aksen
+          const cols = w > 1.2 ? [-w * 0.24, w * 0.24] : [0];
+          cols.forEach(px => {
+            const p1 = sph(w * (w > 1.2 ? 0.19 : 0.32), 0.065, 0.17, px, 0.52, -d / 2 + 0.24, pill1);
+            p1.rotation.x = 0.22;
+            const p2 = sph(w * (w > 1.2 ? 0.15 : 0.25), 0.06, 0.14, px, 0.53, -d / 2 + 0.4, pill2);
+            p2.rotation.x = 0.32;
+          });
+          break;
+        }
+        case 'kloset': {
+          const pm = M(o.color, { roughness: 0.1, metalness: 0.06, clearcoat: 1.0, clearcoatRoughness: 0.06, envMapIntensity: 1.4 });
+          const waterM = M('#bae6fd', { roughness: 0.04, metalness: 0.15, envMapIntensity: 1.6 });
+          const ch = chrome();
+          // Kaki porselen & mangkuk berkontur halus
+          cyl(w * 0.34, w * 0.38, h * 0.44, 0, h * 0.22, d * 0.08, pm);
+          sph(w * 0.49, h * 0.16, d * 0.36, 0, h * 0.48, d * 0.12, pm);
+          cyl(w * 0.34, w * 0.28, 0.015, 0, h * 0.49, d * 0.14, waterM);
+          // Dudukan & penutup kloset
+          sph(w * 0.48, 0.022, d * 0.35, 0, h * 0.57, d * 0.13, M('#ffffff', { roughness: 0.15 }));
+          // Tangki air belakang + tutup + tombol dual-flush krom
+          box(w * 0.92, h * 0.46, d * 0.26, 0, h * 0.68, -d / 2 + d * 0.14, pm);
+          box(w * 0.96, 0.035, d * 0.28, 0, h * 0.92, -d / 2 + d * 0.14, pm);
+          cyl(0.028, 0.028, 0.018, 0, h * 0.945, -d / 2 + d * 0.14, ch);
+          break;
+        }
+        case 'mobil': {
+          const bm = M(o.color, { metalness: 0.72, roughness: 0.18, clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 1.6 });
+          const trimM = M('#111827', { roughness: 0.4, metalness: 0.3 });
+          const gm = M('#0f172a', { transparent: true, opacity: 0.78, metalness: 0.85, roughness: 0.04, clearcoat: 1.0, envMapIntensity: 1.8 });
+          const tireM = M('#171717', { roughness: 0.88 }), rimM = chrome();
+          const wr = h * 0.22;
+          // Bodi bawah, bumper, dan kap mesin/bagasi
+          box(w, h * 0.3, d * 0.96, 0, wr + h * 0.12, 0, bm);
+          sph(w * 0.5, h * 0.15, d * 0.49, 0, wr + h * 0.15, 0, bm);
+          box(w * 0.96, h * 0.08, d * 0.99, 0, wr * 0.72, 0, trimM);
+          // Kabin kaca (greenhouse) + atap mobil
+          box(w * 0.84, h * 0.3, d * 0.5, 0, wr + h * 0.4, -d * 0.04, gm);
+          sph(w * 0.43, h * 0.08, d * 0.26, 0, wr + h * 0.55, -d * 0.04, bm);
+          // Grille depan, plat nomor, spion samping, gagang pintu
+          box(w * 0.52, h * 0.12, 0.04, 0, wr + h * 0.1, d * 0.49, trimM);
+          box(0.36, 0.08, 0.02, 0, wr * 0.85, d * 0.5, M('#f8fafc', { roughness: 0.4 }));
+          [-1, 1].forEach(s => {
+            sph(0.06, 0.045, 0.08, s * (w * 0.52), wr + h * 0.32, d * 0.14, bm);
+            box(0.02, 0.025, 0.14, s * (w * 0.502), wr + h * 0.24, 0, rimM);
+          });
+          // Roda karet + velg alloy 5-palang
+          [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(q => {
+            const wx = q[0] * (w / 2 - 0.08), wz = q[1] * d * 0.31;
+            cyl(wr, wr, 0.22, wx, wr, wz, tireM, 0, Math.PI / 2);
+            cyl(wr * 0.68, wr * 0.68, 0.23, wx, wr, wz, rimM, 0, Math.PI / 2);
+            cyl(wr * 0.22, wr * 0.22, 0.24, wx, wr, wz, trimM, 0, Math.PI / 2);
+          });
+          // Lampu depan LED proyektor & lampu belakang LED bar
+          const hlM = M('#ffffff', { emissive: 0xfff4cc, roughness: 0.1 });
+          const tlM = M('#ef4444', { emissive: 0x991111, roughness: 0.15 });
+          [-1, 1].forEach(i => {
+            box(0.28, 0.075, 0.04, i * (w / 2 - 0.26), wr + h * 0.18, d * 0.485, hlM);
+            box(0.3, 0.075, 0.04, i * (w / 2 - 0.26), wr + h * 0.2, -d * 0.485, tlM);
+          });
+          box(w * 0.78, 0.025, 0.03, 0, wr + h * 0.22, -d * 0.488, tlM);
+          break;
+        }
+        case 'tangga': {
+          const n = Math.max(4, Math.round(h / 0.18)), sd = d / n, shStep = h / n;
+          const riserM = M(o.color, { roughness: 0.6 }), treadM = woodM('#9c6f44', 0.36);
+          const railM = chrome(), glassR = M('#bfe6ff', { transparent: true, opacity: 0.28, roughness: 0.05, metalness: 0.1 });
+          for (let i = 0; i < n; i++) {
+            const ch = shStep * (i + 1), cz = -d / 2 + sd * (i + 0.5);
+            box(w - 0.04, ch - 0.03, sd, 0, (ch - 0.03) / 2, cz, riserM);
+            box(w, 0.032, sd + 0.025, 0, ch - 0.016, cz - 0.01, treadM);
+          }
+          // Railing & tiang balustrade kanan-kiri tangga
+          const diagLen = Math.hypot(d, h), ang = Math.atan2(h, d);
+          [-1, 1].forEach(s => {
+            const rx = s * (w / 2 - 0.035);
+            [0, Math.floor(n / 2), n - 1].forEach(i => {
+              const py = shStep * (i + 1), pz = -d / 2 + sd * (i + 0.5);
+              cyl(0.018, 0.018, 0.92, rx, py + 0.46, pz, railM);
+            });
+            const bar = box(0.035, 0.035, diagLen, rx, h / 2 + 0.9, 0, treadM);
+            bar.rotation.x = ang;
+            const pnl = box(0.01, 0.72, diagLen * 0.94, rx, h / 2 + 0.48, 0, glassR);
+            pnl.rotation.x = ang;
+          });
+          break;
+        }
+        case 'wastafel': {
+          const cabM = woodM(o.color, 0.38), doorM = woodM(shade(o.color, 0.92), 0.34);
+          const topM = M('#f8fafc', { map: marbleTex(), roughness: 0.14, metalness: 0.05, clearcoat: 0.8 });
+          const porM = M('#ffffff', { roughness: 0.1, clearcoat: 1.0 }), ch = chrome();
+          const mirM = M('#e2f1ff', { metalness: 0.98, roughness: 0.02, envMapIntensity: 1.9 });
+          // Kabinet bawah + pintu + handle
+          box(w, h * 0.76, d, 0, h * 0.42, 0, cabM);
+          [-1, 1].forEach(i => {
+            box(w * 0.46, h * 0.68, 0.018, i * w * 0.24, h * 0.42, d / 2 + 0.008, doorM);
+            box(0.09, 0.012, 0.022, i * w * 0.08, h * 0.66, d / 2 + 0.024, ch);
+          });
+          // Meja marmer & mangkuk wastafel porselen + keran leher angsa
+          box(w + 0.03, 0.035, d + 0.03, 0, h * 0.82, 0.01, topM);
+          cyl(w * 0.34, w * 0.26, 0.11, 0, h * 0.88, 0.02, porM);
+          cyl(0.022, 0.022, 0.008, 0, h * 0.845, 0.02, ch);
+          cyl(0.014, 0.018, 0.18, 0, h * 0.92, -d / 2 + 0.09, ch);
+          box(0.016, 0.016, 0.11, 0, h + 0.0, -d / 2 + 0.14, ch);
+          // Cermin dinding berbingkai dengan lampu LED backlight hangat
+          box(w * 0.86, 0.68, 0.012, 0, h + 0.46, -d / 2 + 0.01, M('#fff3d1', { emissive: 0x665228 }));
+          box(w * 0.82, 0.64, 0.018, 0, h + 0.46, -d / 2 + 0.022, mirM);
+          break;
+        }
+        case 'dapur': {
+          const n = Math.max(2, Math.round(w / 0.6));
+          const cabM = M(o.color, { roughness: 0.38 }), doorM = M(shade(o.color, 0.94), { roughness: 0.34 });
+          const topM = M('#f1f5f9', { map: marbleTex(), roughness: 0.15, metalness: 0.08, clearcoat: 0.9 });
+          const hm = chrome(), darkM = M('#111827', { roughness: 0.15, metalness: 0.4, clearcoat: 1.0 });
+          // Plint bawah (toe-kick), kabinet utama, meja granit/marmer, dan backsplash
+          box(w - 0.04, 0.08, d - 0.06, 0, 0.04, -0.02, M('#1f2937'));
+          box(w, h - 0.12, d, 0, 0.08 + (h - 0.12) / 2, 0, cabM);
+          box(w + 0.025, 0.04, d + 0.035, 0, h - 0.02, 0.01, topM);
+          box(w + 0.025, 0.12, 0.02, 0, h + 0.06, -d / 2 + 0.01, topM);
+          for (let i = 0; i < n; i++) {
+            const cw = w / n, cx = -w / 2 + cw * (i + 0.5);
+            // Laci atas & pintu kabinet bawah
+            box(cw - 0.014, 0.16, 0.018, cx, h - 0.14, d / 2 + 0.008, doorM);
+            box(0.12, 0.012, 0.024, cx, h - 0.14, d / 2 + 0.022, hm);
+            box(cw - 0.014, h - 0.34, 0.018, cx, 0.08 + (h - 0.34) / 2, d / 2 + 0.008, doorM);
+            box(0.12, 0.012, 0.024, cx, h - 0.28, d / 2 + 0.022, hm);
+          }
+          // Kompor kaca induksi/gas 4 tungku + kitchen sink stainless & keran tinggi
+          if (w >= 1.2) {
+            const sx = w / 2 - 0.42;
+            box(0.58, 0.012, d * 0.72, sx, h + 0.006, 0.02, darkM);
+            [[-0.14, -0.11], [0.14, -0.11], [-0.14, 0.11], [0.14, 0.11]].forEach(q => {
+              cyl(0.068, 0.068, 0.014, sx + q[0], h + 0.014, 0.02 + q[1], M('#334155', { metalness: 0.7, roughness: 0.3 }));
+              cyl(0.035, 0.035, 0.018, sx + q[0], h + 0.016, 0.02 + q[1], M('#b45309', { metalness: 0.8, roughness: 0.2 }));
+            });
+          }
+          if (w >= 1.8) {
+            const kx = -w / 2 + 0.48;
+            box(0.54, 0.012, d * 0.68, kx, h + 0.005, 0.02, hm);
+            box(0.46, 0.016, d * 0.56, kx, h + 0.006, 0.02, M('#475569', { metalness: 0.85, roughness: 0.25 }));
+            cyl(0.014, 0.016, 0.26, kx, h + 0.13, -d * 0.26, hm);
+            box(0.016, 0.016, 0.16, kx, h + 0.25, -d * 0.18, hm);
+          }
+          break;
+        }
+        case 'etalase': {
+          const baseM = woodM(o.color, 0.38), gl = M('#d8f0ff', { transparent: true, opacity: 0.32, roughness: 0.04, metalness: 0.2, clearcoat: 1.0, envMapIntensity: 1.7 });
+          const ch = chrome(), topM = M('#1e293b', { roughness: 0.25, metalness: 0.4 });
+          box(w, h * 0.44, d, 0, h * 0.22, 0, baseM);
+          box(w - 0.03, h * 0.52, d - 0.03, 0, h * 0.44 + h * 0.26, 0, gl);
+          // Rak kaca internal + lampu strip LED + mesin kasir POS
+          box(w - 0.06, 0.015, d - 0.08, 0, h * 0.68, 0, gl);
+          box(w, 0.032, d + 0.02, 0, h - 0.016, 0, topM);
+          box(w * 0.9, 0.012, 0.02, 0, h - 0.04, d / 2 - 0.04, M('#fef3c7', { emissive: 0x665522 }));
+          if (w >= 1.0) {
+            const px = w * 0.28;
+            box(0.24, 0.03, 0.2, px, h + 0.015, 0, topM);
+            const mon = box(0.24, 0.18, 0.018, px, h + 0.12, 0.02, topM);
+            mon.rotation.x = -0.3;
+          }
+          break;
+        }
+        case 'pilar': {
+          const pm = M(o.color, { bumpMap: wallBumpTex(), bumpScale: 0.008, roughness: 0.55 });
+          const trimM = M(shade(o.color, 0.88), { roughness: 0.45 });
+          box(w + 0.06, 0.12, d + 0.06, 0, 0.06, 0, trimM);
+          box(w, h - 0.22, d, 0, h / 2, 0, pm);
+          box(w + 0.06, 0.1, d + 0.06, 0, h - 0.05, 0, trimM);
+          break;
+        }
+        default:
+          box(w, h, d, 0, h / 2, 0, M(o.color));
+      }
+    }
+    g.traverse(n => { if (n.isMesh && n.userData.id === undefined) n.userData.id = o.id; });
+    g.mats = mats;   // sengaja bukan userData agar tidak ikut diserialisasi saat ekspor GLB
+    return g;
+  }
+
+  function disposeGroup(g) {
+    g.traverse(n => {
+      if (n.geometry) n.geometry.dispose();
+      if (n.material) {
+        const ms = Array.isArray(n.material) ? n.material : [n.material];
+        ms.forEach(m => {
+          if (!m) return;
+          if (m.map && (!m.map.userData || !m.map.userData.shared)) m.map.dispose();
+          if (m.bumpMap && (!m.bumpMap.userData || !m.bumpMap.userData.shared)) m.bumpMap.dispose();
+          m.dispose();
+        });
+      }
+    });
+  }
+
+  function addObjGroup(o) {
+    const g = buildGroup(o, false);
+    g.position.y = lvOf(o) * FH;
+    g.visible = lvOf(o) <= curLv && (!view2d || lvOf(o) === curLv);
+    root.add(g);
+    entries.set(o.id, { o: o, g: g });
+    if (o.id === selId || extra.has(o.id)) setHL(o.id, true);
+  }
+  function removeObjGroup(id) {
+    const e = entries.get(id);
+    if (!e) return;
+    root.remove(e.g);
+    disposeGroup(e.g);
+    entries.delete(id);
+  }
+  function rebuildObj(o) { removeObjGroup(o.id); addObjGroup(o); }
+  function rebuildAll() {
+    Array.from(entries.keys()).forEach(removeObjGroup);
+    objs.forEach(addObjGroup);
+  }
+  function setHL(id, on) {
+    const e = entries.get(id);
+    if (!e) return;
+    e.g.mats.forEach(m => {
+      if (m.emissive) {
+        const base = (m.userData && m.userData.baseEmissive) ? m.userData.baseEmissive : 0x000000;
+        m.emissive.setHex(on ? 0x5a3400 : base);
+      }
+    });
+  }
+
+  // =====================================================================
+  //  Objek: pembuat & utilitas
+  // =====================================================================
+  function makeWall(x1, z1, x2, z2, op) {
+    return { id: nextId++, type: 'wall', x1: x1, z1: z1, x2: x2, z2: z2,
+      t: +$('tebal').value || 0.15, h: +$('tinggiDef').value || 3, color: '#e8e4dc', op: op || [] };
+  }
+  function makeRoom(x1, z1, x2, z2, color, label) {
+    return { id: nextId++, type: 'room', x1: x1, z1: z1, x2: x2, z2: z2, color: color, label: label, ls: 0.7 };
+  }
+  function makeFurn(key, x, z, rot) {
+    const c = CAT[key];
+    return { id: nextId++, type: key, x: x, z: z, rot: rot || 0, w: c.w, d: c.d, h: c.h, color: c.c };
+  }
+  function addObj(o) { if (o.lv === undefined) o.lv = curLv; objs.push(o); addObjGroup(o); return o; }
+  function typeName(o) {
+    if (o.type === 'wall') return 'Dinding';
+    if (o.type === 'room') return 'Ruangan';
+    if (o.type === 'teks') return 'Teks';
+    return CAT[o.type] ? CAT[o.type].n : o.type;
+  }
+  function wallLen(o) { return Math.hypot(o.x2 - o.x1, o.z2 - o.z1); }
+
+  // =====================================================================
+  //  Riwayat, simpan otomatis
+  // =====================================================================
+  function snapshot() { return JSON.stringify({ objs: objs, nextId: nextId }); }
+  function syncUndo() {
+    $('btnUndo').disabled = !undoS.length;
+    $('btnRedo').disabled = !redoS.length;
+  }
+  function pushHistory() {
+    undoS.push(snapshot());
+    if (undoS.length > 80) undoS.shift();
+    redoS.length = 0;
+    syncUndo();
+    scheduleAutosave();
+  }
+  function restore(s) {
+    const d = JSON.parse(s);
+    objs = d.objs;
+    nextId = d.nextId;
+    const keep = selId;
+    selId = null;
+    rebuildAll();
+    select(keep !== null && entries.has(keep) ? keep : null);
+    updateStats();
+    scheduleSun();
+    scheduleAutosave();
+  }
+  function undo() { if (!undoS.length) return; redoS.push(snapshot()); restore(undoS.pop()); syncUndo(); }
+  function redo() { if (!redoS.length) return; undoS.push(snapshot()); restore(redoS.pop()); syncUndo(); }
+
+  let asTimer = null;
+  function scheduleAutosave() {
+    clearTimeout(asTimer);
+    asTimer = setTimeout(() => {
+      try { localStorage.setItem('denah3d-v2', snapshot()); } catch (e) { /* abaikan */ }
+    }, 1500);
+  }
+
+  // =====================================================================
+  //  Seleksi & handle
+  // =====================================================================
+  const handleGroup = new THREE.Group();
+  helpers.add(handleGroup);
+  const hMat = new THREE.MeshBasicMaterial({ color: 0xffd166, depthTest: false, transparent: true });
+
+  function handlePoints(o) {
+    if (o.type === 'wall') return [[o.x1, o.z1, o.h + 0.3], [o.x2, o.z2, o.h + 0.3]];
+    if (o.type === 'room') return [[o.x1, o.z1, 0.4], [o.x2, o.z1, 0.4], [o.x2, o.z2, 0.4], [o.x1, o.z2, 0.4]];
+    return [];
+  }
+  function updateHandles() {
+    while (handleGroup.children.length) {
+      const c = handleGroup.children.pop();
+      c.geometry.dispose();
+    }
+    if (selId === null || !entries.has(selId)) return;
+    handlePoints(entries.get(selId).o).forEach((p, i) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), hMat);
+      m.position.set(p[0], p[2] + lvOf(entries.get(selId).o) * FH, p[1]);
+      m.renderOrder = 999;
+      m.userData.handle = i;
+      handleGroup.add(m);
+    });
+  }
+  function select(id) {
+    extra.forEach(i => setHL(i, false)); extra.clear();
+    if (selId !== null) setHL(selId, false);
+    selId = (id !== null && id !== undefined && entries.has(id)) ? id : null;
+    if (selId !== null) setHL(selId, true);
+    updateHandles();
+    renderProps();
+  }
+
+  // =====================================================================
+  //  Panel properti
+  // =====================================================================
+  function commit(o, fn) {
+    pushHistory();
+    fn();
+    rebuildObj(o);
+    updateHandles();
+    renderProps();
+    updateStats();
+    scheduleSun();
+  }
+
+  function renderProps() {
+    const box = $('props');
+    box.innerHTML = '';
+    const el = (cls, tag) => { const d = document.createElement(tag || 'div'); d.className = cls || ''; return d; };
+    if (selId === null || !entries.has(selId)) {
+      const d = el('muted full');
+      d.textContent = 'Tidak ada objek terpilih. Klik objek di tampilan untuk mengeditnya.';
+      box.appendChild(d);
+      return;
+    }
+    const o = entries.get(selId).o;
+    const title = el('full ptitle');
+    title.textContent = typeName(o) + ' #' + o.id;
+    box.appendChild(title);
+
+    const field = (parent, label, input, full) => {
+      const w = el('f' + (full ? ' full' : ''));
+      const l = document.createElement('label');
+      l.textContent = label;
+      w.appendChild(l);
+      w.appendChild(input);
+      parent.appendChild(w);
+    };
+    const num = (parent, label, val, min, max, step, cb, full) => {
+      const i = document.createElement('input');
+      i.type = 'number'; i.min = min; i.max = max; i.step = step; i.value = fmt(val);
+      i.addEventListener('change', () => {
+        let v = parseFloat(i.value);
+        if (isNaN(v)) { i.value = fmt(val); return; }
+        v = Math.min(max, Math.max(min, v));
+        commit(o, () => cb(v));
+      });
+      field(parent, label, i, full);
+    };
+    const txt = (parent, label, val, cb) => {
+      const i = document.createElement('input');
+      i.type = 'text'; i.value = val;
+      i.addEventListener('change', () => commit(o, () => cb(i.value)));
+      field(parent, label, i, true);
+    };
+    const col = (parent, label, val, cb) => {
+      const i = document.createElement('input');
+      i.type = 'color'; i.value = val;
+      i.addEventListener('change', () => commit(o, () => cb(i.value)));
+      field(parent, label, i, false);
+    };
+    const btn = (parent, label, cb, cls) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      if (cls) b.className = cls;
+      b.addEventListener('click', cb);
+      return b;
+    };
+
+    if (o.type === 'wall') {
+      const L = wallLen(o);
+      num(box, 'Panjang (m)', L, 0.1, 500, 0.05, v => {
+        const dx = o.x2 - o.x1, dz = o.z2 - o.z1, l = Math.hypot(dx, dz);
+        const ux = l > 1e-4 ? dx / l : 1, uz = l > 1e-4 ? dz / l : 0;
+        o.x2 = o.x1 + ux * v; o.z2 = o.z1 + uz * v;
+      });
+      num(box, 'Tebal (m)', o.t, 0.05, 2, 0.01, v => { o.t = v; });
+      num(box, 'Tinggi (m)', o.h, 0.3, 30, 0.1, v => { o.h = v; });
+      col(box, 'Warna sisi A', o.color, v => { o.color = v; });
+      col(box, 'Warna sisi B', o.c2 || o.color, v => { o.c2 = v; });
+      (o.op || []).forEach((p, i) => {
+        const op = el('op full');
+        const head = el('oh');
+        const nm = document.createElement('span');
+        nm.textContent = (p.k === 'pintu' ? 'Pintu ' : 'Jendela ') + (i + 1);
+        head.appendChild(nm);
+        head.appendChild(btn(head, 'Hapus', () => commit(o, () => o.op.splice(i, 1)), 'danger'));
+        op.appendChild(head);
+        num(op, 'Posisi (m)', p.s, 0, 500, 0.05, v => { p.s = v; });
+        num(op, 'Lebar (m)', p.w, 0.3, 20, 0.05, v => { p.w = v; });
+        if (p.k === 'jendela') {
+          num(op, 'Ambang (m)', p.sill != null ? p.sill : 0.9, 0, 10, 0.05, v => { p.sill = v; });
+          num(op, 'Tinggi (m)', p.hh || 1.2, 0.2, 10, 0.05, v => { p.hh = v; });
+        } else {
+          num(op, 'Tinggi (m)', p.hh || 2.1, 0.5, 10, 0.05, v => { p.hh = v; });
+        }
+        box.appendChild(op);
+      });
+      const r1 = el('row full');
+      r1.appendChild(btn(r1, '+ Pintu', () => commit(o, () => o.op.push({ k: 'pintu', s: wallLen(o) / 2, w: 0.9, hh: 2.1 }))));
+      r1.appendChild(btn(r1, '+ Jendela', () => commit(o, () => o.op.push({ k: 'jendela', s: wallLen(o) / 2, w: 1.2, sill: 0.9, hh: 1.2 }))));
+      box.appendChild(r1);
+      const r2 = el('row full');
+      r2.appendChild(btn(r2, 'Samakan tebal & tinggi ke semua dinding', () => {
+        pushHistory();
+        objs.forEach(w => { if (w.type === 'wall') { w.t = o.t; w.h = o.h; rebuildObj(w); } });
+        updateHandles(); renderProps();
+      }));
+      box.appendChild(r2);
+    } else if (o.type === 'room') {
+      txt(box, 'Nama ruangan', o.label || '', v => { o.label = v; });
+      num(box, 'Ukuran teks (m)', o.ls || 0.7, 0.2, 5, 0.1, v => { o.ls = v; });
+      col(box, 'Warna lantai', o.color, v => { o.color = v; });
+      const ms = document.createElement('select');
+      [['', 'Polos (Ubin Halus)'], ['kayu', 'Parket Kayu'], ['keramik', 'Keramik Polis'], ['marmer', 'Marmer Mewah'], ['beton', 'Beton Ekspos'], ['karpet', 'Karpet Halus']].forEach(a => { const op = document.createElement('option'); op.value = a[0]; op.textContent = a[1]; ms.appendChild(op); });
+      ms.value = o.mat || '';
+      ms.addEventListener('change', () => commit(o, () => { o.mat = ms.value; }));
+      field(box, 'Material lantai', ms, false);
+      num(box, 'Lebar (m)', Math.abs(o.x2 - o.x1), 0.3, 500, 0.05, v => { o.x2 = o.x1 + (o.x2 >= o.x1 ? 1 : -1) * v; });
+      num(box, 'Dalam (m)', Math.abs(o.z2 - o.z1), 0.3, 500, 0.05, v => { o.z2 = o.z1 + (o.z2 >= o.z1 ? 1 : -1) * v; });
+    } else if (o.type === 'teks') {
+      txt(box, 'Teks', o.text, v => { o.text = v; });
+      num(box, 'Ukuran (m)', o.size, 0.2, 10, 0.1, v => { o.size = v; });
+      num(box, 'Rotasi (°)', o.rot, 0, 359, 5, v => { o.rot = v; });
+      col(box, 'Warna', o.color, v => { o.color = v; });
+      num(box, 'X (m)', o.x, -1000, 1000, 0.05, v => { o.x = v; });
+      num(box, 'Z (m)', o.z, -1000, 1000, 0.05, v => { o.z = v; });
+    } else {
+      num(box, 'Lebar (m)', o.w, 0.05, 100, 0.05, v => { o.w = v; });
+      num(box, 'Dalam (m)', o.d, 0.05, 100, 0.05, v => { o.d = v; });
+      num(box, 'Tinggi (m)', o.h, 0.02, 50, 0.05, v => { o.h = v; });
+      num(box, 'Rotasi (°)', o.rot, 0, 359, 5, v => { o.rot = v; });
+      num(box, 'X (m)', o.x, -1000, 1000, 0.05, v => { o.x = v; });
+      num(box, 'Z (m)', o.z, -1000, 1000, 0.05, v => { o.z = v; });
+      col(box, 'Warna', o.color, v => { o.color = v; });
+    }
+    const rb = el('row full');
+    if (o.type !== 'wall' && o.type !== 'room') rb.appendChild(btn(rb, 'Putar 90°', () => rotateSel(90)));
+    rb.appendChild(btn(rb, 'Duplikat', duplicateSel));
+    rb.appendChild(btn(rb, 'Hapus', deleteSel, 'danger'));
+    box.appendChild(rb);
+  }
+
+  function deleteSel() {
+    if (selId === null) return;
+    pushHistory();
+    const ids = [selId].concat(Array.from(extra));
+    select(null);
+    objs = objs.filter(o => ids.indexOf(o.id) < 0);
+    ids.forEach(removeObjGroup);
+    updateStats(); scheduleSun();
+  }
+  function duplicateSel() {
+    if (selId === null) return;
+    const src0 = entries.get(selId).o, exIds = Array.from(extra);
+    pushHistory();
+    const c = JSON.parse(JSON.stringify(src0));
+    c.id = nextId++;
+    delete c.auto;
+    const off = 0.6;
+    if (c.type === 'wall' || c.type === 'room') { c.x1 += off; c.x2 += off; c.z1 += off; c.z2 += off; }
+    else { c.x += off; c.z += off; }
+    addObj(c);
+    select(c.id);
+    exIds.forEach(i => {
+      const d2 = JSON.parse(JSON.stringify(entries.get(i).o));
+      d2.id = nextId++; delete d2.auto;
+      if (d2.type === 'wall' || d2.type === 'room') { d2.x1 += off; d2.x2 += off; d2.z1 += off; d2.z2 += off; } else { d2.x += off; d2.z += off; }
+      addObj(d2); extra.add(d2.id); setHL(d2.id, true);
+    });
+    updateStats(); scheduleSun();
+  }
+  function rotateGroup(deg) {
+    const ids = [selId].concat(Array.from(extra)), os = ids.map(i => entries.get(i).o);
+    const ctr = o => (o.type === 'wall' || o.type === 'room') ? [(o.x1 + o.x2) / 2, (o.z1 + o.z2) / 2] : [o.x, o.z];
+    let cx = 0, cz = 0;
+    os.forEach(o => { const c = ctr(o); cx += c[0]; cz += c[1]; });
+    cx /= os.length; cz /= os.length;
+    const a = deg * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+    const rp = (x, z) => [cx + (x - cx) * co + (z - cz) * si, cz - (x - cx) * si + (z - cz) * co];
+    pushHistory();
+    os.forEach(o => {
+      if (o.type === 'wall' || o.type === 'room') {
+        const p = rp(o.x1, o.z1), q = rp(o.x2, o.z2);
+        o.x1 = fmt(p[0]); o.z1 = fmt(p[1]); o.x2 = fmt(q[0]); o.z2 = fmt(q[1]);
+      } else { const p = rp(o.x, o.z); o.x = fmt(p[0]); o.z = fmt(p[1]); o.rot = ((o.rot || 0) + deg) % 360; }
+      rebuildObj(o);
+    });
+    updateHandles(); updateStats(); scheduleSun();
+  }
+  function rotateSel(deg) {
+    if (extra.size && selId !== null) { rotateGroup(deg); return; }
+    if (selId === null) return;
+    const o = entries.get(selId).o;
+    if (o.type === 'wall' || o.type === 'room') return;
+    pushHistory();
+    o.rot = ((o.rot || 0) + deg) % 360;
+    rebuildObj(o);
+    renderProps();
+  }
+
+  // =====================================================================
+  //  Statistik, matahari, kamera
+  // =====================================================================
+  function promote(id) { if (selId !== null) extra.add(selId); extra.delete(id); selId = id; updateHandles(); renderProps(); }
+  function toggleMulti(h) {
+    if (h.id === selId) {
+      setHL(h.id, false);
+      const n = Array.from(extra)[0];
+      if (n === undefined) selId = null; else { extra.delete(n); selId = n; }
+      updateHandles(); renderProps();
+    } else if (extra.has(h.id)) { extra.delete(h.id); setHL(h.id, false); }
+    else if (selId === null) select(h.id);
+    else { extra.add(h.id); setHL(h.id, true); }
+    const n = (selId === null ? 0 : 1) + extra.size;
+    setHint(n ? n + ' objek dipilih · seret untuk pindah · Del hapus · Ctrl+D duplikat' : '');
+  }
+  function applyLv() {
+    updateRoof();
+    entries.forEach(e => { const l = lvOf(e.o); e.g.visible = l <= curLv && (!view2d || l === curLv); });
+  }
+  function setLv(n) { curLv = n; select(null); applyLv(); renderFloors(); updateDims(); }
+  function copyLv() {
+    const to = curLv + 1;
+    const doCopy = () => {
+      pushHistory();
+      objs.filter(o => lvOf(o) === curLv).forEach(o => { const c = JSON.parse(JSON.stringify(o)); c.id = nextId++; delete c.auto; c.lv = to; objs.push(c); });
+      nLv = Math.max(nLv, to + 1);
+      rebuildAll(); setLv(to); updateStats(); scheduleSun(); scheduleAutosave();
+      flash('Isi Lt.' + to + ' disalin ke Lt.' + (to + 1));
+    };
+    if (objs.some(o => lvOf(o) === to)) {
+      askConfirm('Lt.' + (to + 1) + ' sudah berisi. Tetap salin (ditumpuk)?', doCopy);
+      return;
+    }
+    doCopy();
+  }
+  function delLv() {
+    if (nLv < 2) return;
+    askConfirm('Hapus Lt.' + (curLv + 1) + ' beserta seluruh isinya?', () => {
+      pushHistory();
+      const L = curLv;
+      objs = objs.filter(o => lvOf(o) !== L);
+      objs.forEach(o => { if (lvOf(o) > L) o.lv = lvOf(o) - 1; });
+      nLv--; curLv = Math.min(curLv, nLv - 1);
+      select(null); rebuildAll(); updateStats(); scheduleSun(); scheduleAutosave();
+    });
+  }
+  function renderFloors() {
+    nLv = Math.max(nLv, curLv + 1, objs.reduce((m, o) => Math.max(m, lvOf(o) + 1), 1));
+    const f = $('floors');
+    f.innerHTML = '';
+    for (let i = 0; i < nLv; i++) {
+      const b = document.createElement('button');
+      b.textContent = 'Lt.' + (i + 1);
+      if (i === curLv) b.className = 'on';
+      b.onclick = () => setLv(i);
+      f.appendChild(b);
+    }
+    const p = document.createElement('button');
+    if (nLv > 1) { const x = document.createElement('button'); x.textContent = '🗑'; x.title = 'Hapus lantai ini'; x.onclick = delLv; f.appendChild(x); }
+    { const c = document.createElement('button'); c.textContent = '⧉'; c.title = 'Salin isi lantai ini ke lantai berikutnya'; c.onclick = copyLv; f.appendChild(c); }
+    p.textContent = '+'; p.title = 'Tambah lantai';
+    p.onclick = () => { nLv++; setLv(nLv - 1); flash('Lantai ' + nLv + ' ditambahkan. Lantai di bawahnya tetap terlihat sebagai acuan.'); };
+    f.appendChild(p);
+  }
+  let meas = [];
+  const measGroup = new THREE.Group();
+  scene.add(measGroup);
+  function clearMeas() { while (measGroup.children.length) disposeGroup(measGroup.children.pop()); meas = []; }
+  function addMeas(p) {
+    if (meas.length >= 2) clearMeas();
+    const q = wallPoint(p);
+    meas.push(q);
+    if (meas.length === 1) { setPrevLine(q, q); flash('Klik titik kedua.'); return; }
+    hidePreviews();
+    const a = meas[0], L = Math.hypot(q.x - a.x, q.z - a.z);
+    const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x, 0.08, a.z), new THREE.Vector3(q.x, 0.08, q.z)]), new THREE.LineBasicMaterial({ color: 0xff9f1c, depthTest: false }));
+    ln.renderOrder = 997; measGroup.add(ln);
+    const g = new THREE.Group(), tp = textPlane(fmt(L) + ' m', 0.4, '#ff9f1c');
+    tp.material.depthTest = false; tp.renderOrder = 997; g.add(tp);
+    g.position.set((a.x + q.x) / 2, 0.1, (a.z + q.z) / 2 + 0.35); measGroup.add(g);
+    flash('Jarak ' + fmt(L) + ' m (Δx ' + fmt(Math.abs(q.x - a.x)) + ', Δz ' + fmt(Math.abs(q.z - a.z)) + ')');
+  }
+  const roofGroup = new THREE.Group();
+  scene.add(roofGroup);
+  function updateRoof() {
+    while (roofGroup.children.length) disposeGroup(roofGroup.children.pop());
+    const m = $('atap').value;
+    if (!m || view2d || walk) return;
+    const top = objs.reduce((a, o) => Math.max(a, lvOf(o)), 0);
+    if (curLv < top) return;
+    const y = top * FH + (+$('tinggiDef').value || 3);
+    const sel = objs.filter(o => lvOf(o) === top && (o.type === 'wall' || o.type === 'room'));
+    if (!sel.length) return;
+    if (m === 'datar') {
+      const ms = new THREE.MeshStandardMaterial({ color: '#e2e8f0', bumpMap: wallBumpTex(), bumpScale: 0.01, roughness: 0.65, side: THREE.DoubleSide });
+      sel.filter(o => o.type === 'room').forEach(o => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(o.x2 - o.x1) + 0.2, 0.14, Math.abs(o.z2 - o.z1) + 0.2), ms);
+        b.castShadow = true; b.receiveShadow = true;
+        b.position.set((o.x1 + o.x2) / 2, y + 0.07, (o.z1 + o.z2) / 2); roofGroup.add(b);
+      });
+      return;
+    }
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    sel.forEach(o => { x0 = Math.min(x0, o.x1, o.x2); x1 = Math.max(x1, o.x1, o.x2); z0 = Math.min(z0, o.z1, o.z2); z1 = Math.max(z1, o.z1, o.z2); });
+    const ov = 0.6, W = x1 - x0 + ov * 2, D = z1 - z0 + ov * 2, alongX = W >= D, len = alongX ? W : D, span = alongX ? D : W;
+    const rt = roofTileTex(), tMap = rt.map, tBump = rt.bump;
+    tMap.repeat.set(Math.max(1, len / 2.2), Math.max(1, span / 2.2));
+    tBump.repeat.set(Math.max(1, len / 2.2), Math.max(1, span / 2.2));
+    const tileMat = new THREE.MeshStandardMaterial({ color: '#c86440', map: tMap, bumpMap: tBump, bumpScale: 0.035, roughness: 0.42, metalness: 0.05, side: THREE.DoubleSide });
+    const gableMat = new THREE.MeshStandardMaterial({ color: '#e8e4dc', bumpMap: wallBumpTex(), bumpScale: 0.008, roughness: 0.72 });
+    const trimMat = new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.4 });
+    const peak = span * 0.28;
+    const sh = new THREE.Shape();
+    sh.moveTo(-span / 2, 0); sh.lineTo(span / 2, 0); sh.lineTo(0, peak); sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: len, bevelEnabled: false });
+    geo.translate(0, 0, -len / 2);
+    const rg = new THREE.Group();
+    const r = new THREE.Mesh(geo, [gableMat, tileMat]);
+    r.castShadow = true; r.receiveShadow = true;
+    rg.add(r);
+    // Nok atap (ridge cap) & lisplang tepi atap
+    const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, len + 0.06, 16), tileMat);
+    ridge.rotation.x = Math.PI / 2; ridge.position.set(0, peak, 0);
+    rg.add(ridge);
+    [-1, 1].forEach(s => {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, len + 0.04), trimMat);
+      f.position.set(s * span / 2, 0, 0);
+      rg.add(f);
+    });
+    rg.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+    if (alongX) rg.rotation.y = Math.PI / 2;
+    roofGroup.add(rg);
+  }
+  const dimGroup = new THREE.Group();
+  scene.add(dimGroup);
+  function updateDims() {
+    while (dimGroup.children.length) { const c = dimGroup.children.pop(); disposeGroup(c); }
+    if (!$('dims').checked) return;
+    objs.forEach(o => {
+      if (o.type !== 'wall' || lvOf(o) !== curLv) return;
+      const dx = o.x2 - o.x1, dz = o.z2 - o.z1, L = Math.hypot(dx, dz);
+      if (L < 0.3) return;
+      let ang = -Math.atan2(dz, dx);
+      if (Math.cos(ang) < 0) ang += Math.PI;
+      const g = new THREE.Group(), tp = textPlane(fmt(L) + ' m', 0.3, '#d97706');
+      g.add(tp);
+      g.rotation.y = ang;
+      g.position.set((o.x1 + o.x2) / 2 + (-dz / L) * (o.t / 2 + 0.25), 0.05 + curLv * FH, (o.z1 + o.z2) / 2 + (dx / L) * (o.t / 2 + 0.25));
+      dimGroup.add(g);
+    });
+  }
+  function updateStats() {
+    renderFloors(); updateDims(); updateRoof();
+    let nw = 0, lw = 0, nr = 0, ar = 0, nf = 0, nop = 0;
+    objs.forEach(o => {
+      if (o.type === 'wall') { nw++; lw += wallLen(o); nop += (o.op || []).length; }
+      else if (o.type === 'room') { nr++; ar += Math.abs(o.x2 - o.x1) * Math.abs(o.z2 - o.z1); }
+      else if (o.type !== 'teks') nf++;
+    });
+    const rows = [
+      ['Dinding', nw + ' (' + lw.toFixed(1) + ' m)'],
+      ['Pintu & jendela', String(nop)],
+      ['Ruangan', nr + ' (' + ar.toFixed(0) + ' m²)'],
+      ['Furnitur & objek', String(nf)]
+    ];
+    $('stats').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+  }
+
+  function bounds() {
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    const ext = (x, z) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); };
+    objs.forEach(o => {
+      if (o.type === 'wall' || o.type === 'room') { ext(o.x1, o.z1); ext(o.x2, o.z2); }
+      else { ext(o.x - 1, o.z - 1); ext(o.x + 1, o.z + 1); }
+    });
+    if (bg.loaded) { const w = bgW(), h = bgH(); ext(-w / 2, -h / 2); ext(w / 2, h / 2); }
+    if (x0 > x1) { x0 = -10; x1 = 10; z0 = -8; z1 = 8; }
+    return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, big: Math.max(x1 - x0, z1 - z0, 8) };
+  }
+  let sunTimer = null;
+  function scheduleSun() { clearTimeout(sunTimer); sunTimer = setTimeout(updateSun, 60); }
+  function updateRoomLights() {
+    const mode = $('suasana') ? $('suasana').value : 'siang';
+    const on = (!view2d && $('lampuInt') && $('lampuInt').checked);
+    const rooms = on ? objs.filter(o => o.type === 'room' && lvOf(o) <= curLv)
+      .sort((a, b) => (Math.abs(b.x2 - b.x1) * Math.abs(b.z2 - b.z1)) - (Math.abs(a.x2 - a.x1) * Math.abs(a.z2 - a.z1))) : [];
+    const intensity = mode === 'malam' ? 0.9 : mode === 'sore' ? 0.55 : 0.28;
+    const col = mode === 'malam' ? 0xffdfa8 : 0xfff1d0;
+    for (let i = 0; i < roomLightPool.length; i++) {
+      const pl = roomLightPool[i], r = rooms[i];
+      if (!r) {
+        pl.intensity = 0;
+        pl.position.set(0, -100, 0);
+      } else {
+        const cx = (r.x1 + r.x2) / 2, cz = (r.z1 + r.z2) / 2;
+        const span = Math.max(Math.abs(r.x2 - r.x1), Math.abs(r.z2 - r.z1));
+        const ly = lvOf(r) * FH + (+$('tinggiDef').value || 3) - 0.25;
+        pl.color.setHex(col);
+        pl.intensity = intensity;
+        pl.distance = Math.max(8, span * 2.4);
+        pl.position.set(cx, ly, cz);
+      }
+    }
+  }
+
+  function applyAtmosphere() {
+    const mode = $('suasana') ? $('suasana').value : 'siang';
+    const icons = { siang: '☀️', sore: '🌅', malam: '🌙', studio: '🎬' };
+    if ($('btnLight')) $('btnLight').textContent = icons[mode] || '☀️';
+    const es = getEnvAndSky(mode);
+    scene.environment = es.env;
+    if (view2d || mode === 'studio') {
+      scene.background = new THREE.Color(0x0f1419);
+    } else {
+      scene.background = es.sky;
+    }
+    if (mode === 'sore') {
+      hemiLight.color.setHex(0xffd2a6); hemiLight.groundColor.setHex(0x3d312a); hemiLight.intensity = 0.52;
+      sun.color.setHex(0xffa95e); sun.intensity = 1.25;
+      fillLight.color.setHex(0x93c5fd); fillLight.intensity = 0.28;
+      groundMat.color.setHex(0x322e2a);
+      renderer.toneMappingExposure = 1.08;
+    } else if (mode === 'malam') {
+      hemiLight.color.setHex(0x6488b8); hemiLight.groundColor.setHex(0x131b26); hemiLight.intensity = 0.32;
+      sun.color.setHex(0x8ab4f8); sun.intensity = 0.42;
+      fillLight.color.setHex(0x475569); fillLight.intensity = 0.18;
+      groundMat.color.setHex(0x161f2b);
+      renderer.toneMappingExposure = 1.02;
+    } else if (mode === 'studio') {
+      hemiLight.color.setHex(0xfff6ea); hemiLight.groundColor.setHex(0x3b4658); hemiLight.intensity = 0.62;
+      sun.color.setHex(0xfff2dd); sun.intensity = 1.05;
+      fillLight.color.setHex(0xc7dfff); fillLight.intensity = 0.35;
+      groundMat.color.setHex(0x1a2230);
+      renderer.toneMappingExposure = 1.1;
+    } else {
+      hemiLight.color.setHex(0xfffaf0); hemiLight.groundColor.setHex(0x4b5563); hemiLight.intensity = 0.62;
+      sun.color.setHex(0xfff5e4); sun.intensity = 1.2;
+      fillLight.color.setHex(0xcce3ff); fillLight.intensity = 0.38;
+      groundMat.color.setHex(0x344238);
+      renderer.toneMappingExposure = 1.14;
+    }
+    updateSun();
+    updateRoomLights();
+  }
+
+  function updateSun() {
+    const b = bounds();
+    const mode = $('suasana') ? $('suasana').value : 'siang';
+    const elev = mode === 'sore' ? 0.62 : mode === 'malam' ? 0.95 : 1.15;
+    sun.position.set(b.cx + b.big * 0.62, b.big * elev, b.cz + b.big * 0.48);
+    sun.target.position.set(b.cx, 0, b.cz);
+    sun.target.updateMatrixWorld();
+    fillLight.position.set(b.cx - b.big * 0.6, b.big * 0.85, b.cz - b.big * 0.5);
+    fillLight.target.position.set(b.cx, 0, b.cz);
+    fillLight.target.updateMatrixWorld();
+    const s = sun.shadow.camera, r = b.big * 0.85;
+    s.left = -r; s.right = r; s.top = r; s.bottom = -r; s.near = 0.5; s.far = b.big * 4.5;
+    s.updateProjectionMatrix();
+    updateRoomLights();
+  }
+  function fitCamera() {
+    const b = bounds();
+    controls.target.set(b.cx, 0, b.cz);
+    if (view2d) camera.position.set(b.cx, b.big * 1.15, b.cz + 0.001);
+    else camera.position.set(b.cx, b.big * 0.85, b.cz + b.big * 0.9);
+    controls.update();
+  }
+  function setView2D(on) {
+    setTimeout(applyLv, 0);
+    view2d = on;
+    const t = controls.target, dist = Math.max(5, camera.position.distanceTo(t));
+    if (on) {
+      controls.enableRotate = false;
+      controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      if (controls.touches) controls.touches.ONE = THREE.TOUCH.PAN;
+      camera.position.set(t.x, t.y + dist, t.z + 0.001);
+    } else {
+      controls.enableRotate = true;
+      controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      if (controls.touches) controls.touches.ONE = THREE.TOUCH.ROTATE;
+      camera.position.set(t.x, t.y + dist * 0.75, t.z + dist * 0.65);
+    }
+    controls.update();
+    $('btnView').textContent = on ? '2D' : '3D';
+    applyAtmosphere();
+  }
+
+  // =====================================================================
+  //  Gambar referensi & deteksi dinding
+  // =====================================================================
+  const bgW = () => Math.max(1, +$('lebar').value || 40);
+  const bgH = () => bgW() * src.height / src.width;
+
+  function updateBg() {
+    if (bg.mesh) { bgGroup.remove(bg.mesh); bg.mesh.geometry.dispose(); bg.mesh.material.dispose(); bg.mesh = null; }
+    if (bg.tex) { bg.tex.dispose(); bg.tex = null; }
+    if (!bg.loaded) return;
+    bg.tex = new THREE.CanvasTexture(src);
+    bg.tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const m = new THREE.MeshBasicMaterial({ map: bg.tex, transparent: true, opacity: +$('opas').value, depthWrite: false });
+    bg.mesh = new THREE.Mesh(new THREE.PlaneGeometry(bgW(), bgH()), m);
+    bg.mesh.rotation.x = -Math.PI / 2;
+    bg.mesh.position.y = 0.004;
+    bg.mesh.visible = $('showbg').checked;
+    bgGroup.add(bg.mesh);
+  }
+  function setSource(img) {
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    if (!w || !h) return;
+    const k = Math.min(1, 2000 / Math.max(w, h));
+    src.width = Math.max(1, Math.round(w * k));
+    src.height = Math.max(1, Math.round(h * k));
+    const c = src.getContext('2d');
+    c.fillStyle = '#fff';
+    c.fillRect(0, 0, src.width, src.height);
+    c.drawImage(img, 0, 0, src.width, src.height);
+    bg.loaded = true;
+    updateBg();
+    fitCamera();
+    scheduleSun();
+    flash('Gambar dimuat. Kalibrasi skala (📏) lalu jiplak dinding atau pakai deteksi otomatis.');
+  }
+  function loadImageFile(file) {
+    if (!file || file.type.indexOf('image/') !== 0) return;
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => { setSource(im); URL.revokeObjectURL(url); };
+    im.onerror = () => URL.revokeObjectURL(url);
+    im.src = url;
+  }
+  function clearBg() {
+    bg.loaded = false;
+    updateBg();
+    scheduleSun();
+  }
+
+  function mergeRects(g, W, H) {
+    const rects = [];
+    let active = new Map();
+    for (let y = 0; y <= H; y++) {
+      const next = new Map();
+      if (y < H) {
+        let x = 0;
+        while (x < W) {
+          if (g[y * W + x]) {
+            const x0 = x;
+            while (x < W && g[y * W + x]) x++;
+            const key = x0 + ',' + (x - x0);
+            const prev = active.get(key);
+            if (prev) { prev.h++; next.set(key, prev); active.delete(key); }
+            else { const r = { x: x0, y: y, w: x - x0, h: 1 }; rects.push(r); next.set(key, r); }
+          } else x++;
+        }
+      }
+      active = next;
+    }
+    return rects;
+  }
+
+  function detectWalls() {
+    if (!bg.loaded) { flash('Upload gambar denah dulu.'); return; }
+    const cols = +$('res').value, tw = bgW();
+    const rows = Math.max(1, Math.round(cols * src.height / src.width));
+    const cs = tw / cols, td = cs * rows;
+    const thr = +$('thr').value;
+    const grid = new Uint8Array(cols * rows);
+
+    if ($('metode').value === 'min') {
+      const sd = src.getContext('2d').getImageData(0, 0, src.width, src.height).data;
+      const sw = src.width, sh = src.height;
+      const mn = new Float32Array(cols * rows).fill(255);
+      for (let y = 0; y < sh; y++) {
+        const cy = Math.min(rows - 1, Math.floor(y * rows / sh));
+        for (let x = 0; x < sw; x++) {
+          const cx = Math.min(cols - 1, Math.floor(x * cols / sw));
+          const i = (y * sw + x) * 4;
+          const l = 0.299 * sd[i] + 0.587 * sd[i + 1] + 0.114 * sd[i + 2];
+          const k = cy * cols + cx;
+          if (l < mn[k]) mn[k] = l;
+        }
+      }
+      for (let k = 0; k < grid.length; k++) grid[k] = mn[k] < thr ? 1 : 0;
+    } else {
+      const c = document.createElement('canvas');
+      c.width = cols; c.height = rows;
+      const x = c.getContext('2d', { willReadFrequently: true });
+      x.fillStyle = '#fff'; x.fillRect(0, 0, cols, rows);
+      x.drawImage(src, 0, 0, cols, rows);
+      const d = x.getImageData(0, 0, cols, rows).data;
+      for (let k = 0; k < grid.length; k++) {
+        grid[k] = (0.299 * d[k * 4] + 0.587 * d[k * 4 + 1] + 0.114 * d[k * 4 + 2]) < thr ? 1 : 0;
+      }
+    }
+    if ($('inv').checked) for (let k = 0; k < grid.length; k++) grid[k] = grid[k] ? 0 : 1;
+
+    // buang objek kecil (teks, bintik) berdasarkan panjang terpanjang
+    const minCells = Math.max(1, Math.ceil(+$('minlen').value / cs));
+    const seen = new Uint8Array(grid.length), q = new Int32Array(grid.length), out = new Uint8Array(grid.length);
+    for (let s = 0; s < grid.length; s++) {
+      if (!grid[s] || seen[s]) continue;
+      let head = 0, tail = 0, minx = cols, maxx = 0, miny = rows, maxy = 0;
+      q[tail++] = s; seen[s] = 1;
+      while (head < tail) {
+        const c = q[head++], cx = c % cols, cy = (c - cx) / cols;
+        if (cx < minx) minx = cx; if (cx > maxx) maxx = cx;
+        if (cy < miny) miny = cy; if (cy > maxy) maxy = cy;
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = cy + dy;
+          if (ny < 0 || ny >= rows) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = cx + dx;
+            if (nx < 0 || nx >= cols || (!dx && !dy)) continue;
+            const n = ny * cols + nx;
+            if (grid[n] && !seen[n]) { seen[n] = 1; q[tail++] = n; }
+          }
+        }
+      }
+      if (Math.max(maxx - minx + 1, maxy - miny + 1) >= minCells) for (let i = 0; i < tail; i++) out[q[i]] = 1;
+    }
+
+    const rects = mergeRects(out, cols, rows);
+    if (!rects.length) { flash('Tidak ada dinding terdeteksi. Naikkan ambang gelap atau kecilkan panjang minimum.'); return; }
+    if (rects.length > 4000) { flash('Terlalu banyak potongan (' + rects.length + '). Turunkan resolusi atau naikkan panjang minimum.'); return; }
+
+    pushHistory();
+    select(null);
+    objs.filter(o => o.auto).forEach(o => removeObjGroup(o.id));
+    objs = objs.filter(o => !o.auto);
+    const hh = +$('tinggiDef').value || 3;
+    rects.forEach(r => {
+      const t = Math.max(0.08, Math.min(r.w, r.h) * cs);
+      const X0 = r.x * cs - tw / 2, Z0 = r.y * cs - td / 2;
+      let w;
+      if (r.w >= r.h) {
+        const zc = Z0 + r.h * cs / 2;
+        w = makeWall(X0 + t / 2, zc, X0 + r.w * cs - t / 2, zc);
+      } else {
+        const xc = X0 + r.w * cs / 2;
+        w = makeWall(xc, Z0 + t / 2, xc, Z0 + r.h * cs - t / 2);
+      }
+      w.t = t; w.h = hh; w.auto = true;
+      addObj(w);
+    });
+    updateStats(); scheduleSun();
+    flash(rects.length + ' potongan dinding dibuat. Hapus yang tidak perlu atau tambah pintu/jendela.');
+  }
+  function clearAuto() {
+    if (!objs.some(o => o.auto)) { flash('Tidak ada hasil deteksi.'); return; }
+    pushHistory();
+    select(null);
+    objs.filter(o => o.auto).forEach(o => removeObjGroup(o.id));
+    objs = objs.filter(o => !o.auto);
+    updateStats(); scheduleSun();
+  }
+
+  // =====================================================================
+  //  Kalibrasi
+  // =====================================================================
+  function clearCalib() {
+    calib.marks.forEach(m => { helpers.remove(m); m.geometry.dispose(); });
+    calib = { pts: [], marks: [], measured: 0 };
+    $('calibBox').style.display = 'none';
+  }
+  function addCalibPoint(p) {
+    if (calib.pts.length >= 2) clearCalib();
+    calib.pts.push(p.clone());
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff4d4d, depthTest: false }));
+    m.position.set(p.x, 0.3, p.z);
+    m.renderOrder = 999;
+    helpers.add(m);
+    calib.marks.push(m);
+    if (calib.pts.length === 2) {
+      calib.measured = calib.pts[0].distanceTo(calib.pts[1]);
+      $('calibInfo').textContent = 'Jarak terukur saat ini: ' + calib.measured.toFixed(2) + ' m';
+      $('calibReal').value = fmt(calib.measured);
+      $('calibBox').style.display = 'block';
+      $('secBg').open = true;
+      $('calibReal').focus();
+    }
+  }
+  function applyCalib() {
+    const real = parseFloat($('calibReal').value);
+    if (!(real > 0) || !(calib.measured > 0)) return;
+    const f = real / calib.measured;
+    $('lebar').value = fmt(bgW() * f);
+    updateBg();
+    const finish = () => {
+      clearCalib();
+      fitCamera();
+      scheduleSun();
+      flash('Skala diterapkan: lebar gambar ' + $('lebar').value + ' m.');
+    };
+    if (objs.some(o => o.auto)) {
+      askConfirm('Skala berubah. Dinding hasil deteksi dibuat ulang sesuai skala baru?', () => { detectWalls(); finish(); }, finish);
+    } else finish();
+  }
+
+  // =====================================================================
+  //  Pointer / interaksi
+  // =====================================================================
+  const prevLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineBasicMaterial({ color: 0xffd166, depthTest: false }));
+  prevLine.renderOrder = 998; prevLine.visible = false; prevLine.frustumCulled = false;
+  helpers.add(prevLine);
+  const prevRect = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineBasicMaterial({ color: 0xffd166, depthTest: false }));
+  prevRect.renderOrder = 998; prevRect.visible = false; prevRect.frustumCulled = false;
+  helpers.add(prevRect);
+
+  function setPrevLine(a, b) {
+    const pa = prevLine.geometry.attributes.position;
+    pa.setXYZ(0, a.x, 0.06, a.z); pa.setXYZ(1, b.x, 0.06, b.z);
+    pa.needsUpdate = true;
+    prevLine.visible = true;
+  }
+  function setPrevRect(a, b) {
+    const pa = prevRect.geometry.attributes.position;
+    pa.setXYZ(0, a.x, 0.06, a.z); pa.setXYZ(1, b.x, 0.06, a.z);
+    pa.setXYZ(2, b.x, 0.06, b.z); pa.setXYZ(3, a.x, 0.06, b.z);
+    pa.needsUpdate = true;
+    prevRect.visible = true;
+  }
+  function hidePreviews() { prevLine.visible = false; prevRect.visible = false; }
+
+  function setRay(e) {
+    const b = dom.getBoundingClientRect();
+    ndc.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+  }
+  function groundAt(e) {
+    setRay(e);
+    const v = new THREE.Vector3();
+    return ray.ray.intersectPlane(gplane, v) ? v : null;
+  }
+  function pickObj(e, filter) {
+    setRay(e);
+    const hits = ray.intersectObjects(root.children, true);
+    for (let i = 0; i < hits.length; i++) {
+      const id = hits[i].object.userData.id;
+      if (id === undefined) continue;
+      const en = entries.get(id);
+      if (!en || lvOf(en.o) !== curLv) continue;
+      if (filter && !filter(en.o)) continue;
+      return { id: id, o: en.o, point: hits[i].point };
+    }
+    return null;
+  }
+  function pickHandle(e) {
+    if (!handleGroup.children.length) return -1;
+    setRay(e);
+    const hits = ray.intersectObjects(handleGroup.children, false);
+    return hits.length ? hits[0].object.userData.handle : -1;
+  }
+
+  function wallPoint(p) {
+    let x = snapV(p.x), z = snapV(p.z);
+    if (chain && $('ortho').checked) {
+      if (Math.abs(x - chain.x) >= Math.abs(z - chain.z)) z = chain.z; else x = chain.x;
+    }
+    let best = null, bd = 0.25;
+    objs.forEach(o => {
+      if (o.type !== 'wall' || lvOf(o) !== curLv) return;
+      [[o.x1, o.z1], [o.x2, o.z2]].forEach(pt => {
+        const d = Math.hypot(pt[0] - x, pt[1] - z);
+        if (d < bd) { bd = d; best = pt; }
+      });
+    });
+    if (best) { x = best[0]; z = best[1]; }
+    return { x: x, z: z };
+  }
+
+  function finishChain() {
+    chain = null; numBuf = '';
+    hidePreviews();
+    $('btnDone').style.display = 'none';
+  }
+  function cancelGesture() {
+    gest = null;
+    controls.enabled = true;
+    hidePreviews();
+    if (chain) setPrevLine(chain, chain);
+  }
+
+  function snapshotPos(o) {
+    return { x: o.x, z: o.z, x1: o.x1, z1: o.z1, x2: o.x2, z2: o.z2 };
+  }
+
+  function addOpening(kind, e) {
+    const hit = pickObj(e, o => o.type === 'wall');
+    if (!hit) { flash('Klik tepat pada dinding.'); return; }
+    const o = hit.o, L = wallLen(o);
+    const w = kind === 'pintu' ? 0.9 : 1.2;
+    if (L < w + 0.1) { flash('Dinding terlalu pendek untuk ' + kind + '.'); return; }
+    const dx = o.x2 - o.x1, dz = o.z2 - o.z1;
+    let s = ((hit.point.x - o.x1) * dx + (hit.point.z - o.z1) * dz) / L;
+    s = Math.min(L - w / 2, Math.max(w / 2, snapV(s)));
+    pushHistory();
+    o.op = o.op || [];
+    o.op.push(kind === 'pintu' ? { k: 'pintu', s: s, w: w, hh: 2.1 } : { k: 'jendela', s: s, w: w, sill: 0.9, hh: 1.2 });
+    rebuildObj(o);
+    select(o.id);
+    updateStats();
+  }
+
+  view.addEventListener('pointerdown', onDown, true);
+  function onDown(e) {
+    if (e.target !== dom) return;
+    if (e.pointerType === 'mouse') pointers.clear();
+    pointers.add(e.pointerId);
+    if (pointers.size > 1) { cancelGesture(); return; }
+    if (e.button !== 0) return;
+    const p = groundAt(e);
+
+    if (tool === 'select') {
+      const hi = pickHandle(e);
+      if (hi >= 0 && selId !== null) {
+        gest = { k: 'handle', idx: hi, moved: false };
+        controls.enabled = false;
+        return;
+      }
+      const hit = pickObj(e);
+      if (hit && (multiMode || e.shiftKey)) { toggleMulti(hit); return; }
+      if (hit && extra.has(hit.id)) promote(hit.id);
+      if (hit) {
+        const immediate = hit.o.type !== 'room' || hit.id === selId;
+        if (immediate) {
+          if (hit.id !== selId) select(hit.id);
+          gest = { k: 'move', id: hit.id, start: p ? { x: p.x, z: p.z } : { x: 0, z: 0 }, orig: snapshotPos(hit.o), moved: false, ex: Array.from(extra).map(i => ({ o: entries.get(i).o, g: snapshotPos(entries.get(i).o) })) };
+          controls.enabled = false;
+        } else {
+          gest = { k: 'maybe', id: hit.id, sx: e.clientX, sy: e.clientY };
+        }
+      } else if (multiMode || e.shiftKey) {
+        if (p) { gest = { k: 'box', a: { x: p.x, z: p.z }, b: null }; controls.enabled = false; }
+      } else {
+        gest = { k: 'maybe', id: null, sx: e.clientX, sy: e.clientY };
+      }
+      return;
+    }
+
+    if (!p) return;
+    controls.enabled = false;
+    gest = { k: 'tool' };
+
+    if (tool === 'wall') {
+      const q = wallPoint(p);
+      if (!chain) {
+        chain = { x: q.x, z: q.z };
+        setPrevLine(q, q);
+        $('btnDone').style.display = '';
+      } else if (Math.hypot(q.x - chain.x, q.z - chain.z) < 0.05) {
+        finishChain();
+      } else {
+        pushHistory();
+        addObj(makeWall(chain.x, chain.z, q.x, q.z));
+        chain = { x: q.x, z: q.z };
+        setPrevLine(chain, chain);
+        updateStats(); scheduleSun();
+      }
+    } else if (tool === 'room') {
+      gest = { k: 'room', a: { x: snapV(p.x), z: snapV(p.z) }, b: null };
+    } else if (tool === 'pintu' || tool === 'jendela') {
+      addOpening(tool, e);
+    } else if (tool === 'teks') {
+      pushHistory();
+      const o = addObj({ id: nextId++, type: 'teks', x: snapV(p.x), z: snapV(p.z), rot: 0, text: 'Teks', size: 0.6, color: '#e5e7eb' });
+      select(o.id);
+      setTool('select');
+    } else if (tool === 'ukur') {
+      addMeas(p);
+    } else if (tool === 'calib') {
+      addCalibPoint(p);
+    } else if (tool === 'place' && placeKey) {
+      pushHistory();
+      const o = addObj(makeFurn(placeKey, snapV(p.x), snapV(p.z), placeRot));
+      select(o.id);
+      updateStats(); scheduleSun();
+    }
+  }
+
+  window.addEventListener('pointermove', onMove);
+  function onMove(e) {
+    const onCanvas = e.target === dom;
+    if (!gest && !onCanvas) return;
+    const p = (gest || onCanvas) ? groundAt(e) : null;
+    if (!p) return;
+
+    if (gest) {
+      if (gest.k === 'move') {
+        const o = entries.get(gest.id).o;
+        const dx = snapV(p.x - gest.start.x), dz = snapV(p.z - gest.start.z);
+        if (!gest.moved) {
+          if (Math.abs(dx) < 1e-6 && Math.abs(dz) < 1e-6) return;
+          gest.moved = true;
+          pushHistory();
+        }
+        const g = gest.orig;
+        if (o.type === 'wall' || o.type === 'room') { o.x1 = g.x1 + dx; o.x2 = g.x2 + dx; o.z1 = g.z1 + dz; o.z2 = g.z2 + dz; }
+        else { o.x = g.x + dx; o.z = g.z + dz; }
+        if (!gest.ex.length && o.type !== 'wall' && o.type !== 'room') {
+          let gx = null, gz = null;
+          objs.forEach(t => {
+            if (t === o || lvOf(t) !== curLv) return;
+            const c = (t.type === 'wall' || t.type === 'room') ? [(t.x1 + t.x2) / 2, (t.z1 + t.z2) / 2] : [t.x, t.z];
+            if (gx === null && Math.abs(c[0] - o.x) < 0.12) gx = c;
+            if (gz === null && Math.abs(c[1] - o.z) < 0.12) gz = c;
+          });
+          if (gx) { o.x = gx[0]; setPrevLine({ x: gx[0], z: o.z }, { x: gx[0], z: gx[1] }); }
+          else if (gz) { o.z = gz[1]; setPrevLine({ x: o.x, z: gz[1] }, { x: gz[0], z: gz[1] }); }
+          else hidePreviews();
+        }
+        rebuildObj(o);
+        (gest.ex || []).forEach(q => {
+          const t = q.o, h = q.g;
+          if (t.type === 'wall' || t.type === 'room') { t.x1 = h.x1 + dx; t.x2 = h.x2 + dx; t.z1 = h.z1 + dz; t.z2 = h.z2 + dz; }
+          else { t.x = h.x + dx; t.z = h.z + dz; }
+          rebuildObj(t);
+        });
+        updateHandles();
+      } else if (gest.k === 'handle') {
+        const o = entries.get(selId).o;
+        let q = { x: snapV(p.x), z: snapV(p.z) };
+        if (o.type === 'wall') q = wallPointFor(o, gest.idx, p);
+        if (!gest.moved) { gest.moved = true; pushHistory(); }
+        if (o.type === 'wall') {
+          if (gest.idx === 0) { o.x1 = q.x; o.z1 = q.z; } else { o.x2 = q.x; o.z2 = q.z; }
+        } else {
+          const i = gest.idx;
+          if (i === 0) { o.x1 = q.x; o.z1 = q.z; }
+          else if (i === 1) { o.x2 = q.x; o.z1 = q.z; }
+          else if (i === 2) { o.x2 = q.x; o.z2 = q.z; }
+          else { o.x1 = q.x; o.z2 = q.z; }
+        }
+        rebuildObj(o);
+        updateHandles();
+      } else if (gest.k === 'box') {
+        gest.b = { x: p.x, z: p.z }; setPrevRect(gest.a, gest.b);
+      } else if (gest.k === 'room') {
+        gest.b = { x: snapV(p.x), z: snapV(p.z) };
+        setPrevRect(gest.a, gest.b);
+        setHint('Ruangan ' + Math.abs(gest.b.x - gest.a.x).toFixed(2) + ' × ' + Math.abs(gest.b.z - gest.a.z).toFixed(2) + ' m');
+      }
+      return;
+    }
+
+    // hover
+    if (tool === 'wall') {
+      const q = wallPoint(p);
+      lastQ = q;
+      if (chain) {
+        setPrevLine(chain, q);
+        setHint('Panjang ' + Math.hypot(q.x - chain.x, q.z - chain.z).toFixed(2) + ' m · klik untuk lanjut, dobel klik / Enter untuk selesai');
+      }
+    } else if (tool === 'ukur' && meas.length === 1) {
+      setPrevLine(meas[0], wallPoint(p));
+    } else if (tool === 'place' && ghost) {
+      ghostPos.x = snapV(p.x); ghostPos.z = snapV(p.z);
+      ghost.position.set(ghostPos.x, 0, ghostPos.z);
+      ghost.visible = true;
+    }
+  }
+  function wallPointFor(o, idx, p) {
+    // handle dinding: snap grid + ortho terhadap ujung lawan + snap ke ujung dinding lain
+    const other = idx === 0 ? { x: o.x2, z: o.z2 } : { x: o.x1, z: o.z1 };
+    let x = snapV(p.x), z = snapV(p.z);
+    if ($('ortho').checked) {
+      if (Math.abs(x - other.x) >= Math.abs(z - other.z)) z = other.z; else x = other.x;
+    }
+    let best = null, bd = 0.25;
+    objs.forEach(w => {
+      if (w === o || w.type !== 'wall') return;
+      [[w.x1, w.z1], [w.x2, w.z2]].forEach(pt => {
+        const d = Math.hypot(pt[0] - x, pt[1] - z);
+        if (d < bd) { bd = d; best = pt; }
+      });
+    });
+    if (best) { x = best[0]; z = best[1]; }
+    return { x: x, z: z };
+  }
+
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  function onUp(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size > 0) return;
+    const g = gest;
+    gest = null;
+    controls.enabled = true;
+    if (!g) return;
+    if (g.k === 'maybe') {
+      if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < 6) select(g.id);
+    } else if (g.k === 'move' || g.k === 'handle') {
+      hidePreviews();
+      if (g.moved) {
+        const o = entries.get(g.k === 'move' ? g.id : selId).o;
+        if (o.type === 'room') {
+          const a = Math.min(o.x1, o.x2), b = Math.max(o.x1, o.x2), c = Math.min(o.z1, o.z2), d = Math.max(o.z1, o.z2);
+          o.x1 = a; o.x2 = b; o.z1 = c; o.z2 = d;
+          rebuildObj(o);
+        }
+        updateHandles();
+        renderProps();
+        updateStats();
+        scheduleSun();
+      }
+    } else if (g.k === 'box') {
+      prevRect.visible = false;
+      if (g.b && (Math.abs(g.b.x - g.a.x) > 0.2 || Math.abs(g.b.z - g.a.z) > 0.2)) {
+        const x0 = Math.min(g.a.x, g.b.x), x1 = Math.max(g.a.x, g.b.x), z0 = Math.min(g.a.z, g.b.z), z1 = Math.max(g.a.z, g.b.z);
+        const ids = objs.filter(o => {
+          if (lvOf(o) !== curLv) return false;
+          const c = (o.type === 'wall' || o.type === 'room') ? [(o.x1 + o.x2) / 2, (o.z1 + o.z2) / 2] : [o.x, o.z];
+          return c[0] >= x0 && c[0] <= x1 && c[1] >= z0 && c[1] <= z1;
+        }).map(o => o.id);
+        if (ids.length) { select(ids[0]); ids.slice(1).forEach(i => { extra.add(i); setHL(i, true); }); flash(ids.length + ' objek dipilih · seret untuk pindah · R putar'); }
+      }
+    } else if (g.k === 'room') {
+      prevRect.visible = false;
+      if (g.b && Math.abs(g.b.x - g.a.x) >= 0.3 && Math.abs(g.b.z - g.a.z) >= 0.3) {
+        pushHistory();
+        const n = objs.filter(o => o.type === 'room').length;
+        const r = addObj(makeRoom(Math.min(g.a.x, g.b.x), Math.min(g.a.z, g.b.z), Math.max(g.a.x, g.b.x), Math.max(g.a.z, g.b.z), ROOM_COLORS[n % ROOM_COLORS.length], 'Ruangan'));
+        select(r.id);
+        updateStats(); scheduleSun();
+      }
+      setHint();
+    }
+  }
+
+  // =====================================================================
+  //  Alat, hint
+  // =====================================================================
+  const HINTS = {
+    select: 'Klik objek untuk memilih · seret untuk memindah · seret titik kuning untuk ubah ujung/sudut · Del hapus · R putar',
+    wall: 'Klik titik awal, lalu klik titik berikutnya. Dobel klik, Enter, atau tombol Selesai untuk mengakhiri.',
+    room: 'Seret di lantai untuk membuat ruangan (zona warna + nama).',
+    pintu: 'Klik pada dinding untuk menaruh pintu.',
+    jendela: 'Klik pada dinding untuk menaruh jendela.',
+    teks: 'Klik di lantai untuk menaruh teks.',
+    ukur: 'Klik dua titik untuk mengukur jarak (menempel ke ujung dinding). Esc selesai.',
+    calib: 'Klik dua titik pada gambar yang jaraknya Anda ketahui.',
+    place: 'Klik untuk menaruh objek · R putar 90° · Esc selesai'
+  };
+  function setHint(t) { $('hint').textContent = t || HINTS[tool] || ''; }
+  function flash(t) {
+    $('hint').textContent = t;
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => setHint(), 4500);
+  }
+  function rebuildGhost() {
+    if (ghost) { helpers.remove(ghost); disposeGroup(ghost); ghost = null; }
+    if (tool !== 'place' || !placeKey) return;
+    const c = CAT[placeKey];
+    ghost = buildGroup({ id: -1, type: placeKey, x: ghostPos.x, z: ghostPos.z, rot: placeRot, w: c.w, d: c.d, h: c.h, color: c.c }, true);
+    ghost.visible = false;
+    helpers.add(ghost);
+  }
+  function setTool(t, key) {
+    finishChain();
+    hidePreviews();
+    if (t !== 'calib') clearCalib();
+    if (t !== 'ukur') clearMeas();
+    tool = t;
+    placeKey = t === 'place' ? key : null;
+    placeRot = 0;
+    document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+    document.querySelectorAll('[data-furn]').forEach(b => b.classList.toggle('active', t === 'place' && b.dataset.furn === key));
+    rebuildGhost();
+    dom.style.cursor = t === 'select' ? 'default' : 'crosshair';
+    setHint();
+  }
+
+  // =====================================================================
+  //  Proyek: contoh, simpan, buka, ekspor
+  // =====================================================================
+  function loadObjs(list, next) {
+    select(null);
+    objs = list;
+    nextId = next || (list.reduce((m, o) => Math.max(m, o.id), 0) + 1);
+    rebuildAll();
+    updateStats();
+    updateSun();
+  }
+
+  function sampleOffice() {
+    nextId = 1;
+    const list = [];
+    const W = (x1, z1, x2, z2, op) => list.push(makeWall(x1, z1, x2, z2, op));
+    const win = (s, w) => ({ k: 'jendela', s: s, w: w || 1.6, sill: 0.9, hh: 1.2 });
+    const door = (s, w) => ({ k: 'pintu', s: s, w: w || 1.0, hh: 2.1 });
+    const r1 = makeRoom(-8, -5, 2, 5, '#e8eef5', 'Ruang Kerja'); r1.mat = 'keramik'; list.push(r1);
+    const r2 = makeRoom(2, -5, 8, 1, '#e6dec8', 'Ruang Rapat'); r2.mat = 'kayu'; list.push(r2);
+    const r3 = makeRoom(2, 1, 8, 5, '#f5efe6', 'Lobby'); r3.mat = 'marmer'; list.push(r3);
+    W(-8, -5, 8, -5, [win(3), win(8), win(13)]);
+    W(8, -5, 8, 5, [win(3), win(7.5)]);
+    W(8, 5, -8, 5, [door(4, 1.4), win(11), win(14)]);
+    W(-8, 5, -8, -5, [win(3), win(7)]);
+    W(2, -5, 2, 5, [door(8, 1.2)]);
+    W(2, 1, 8, 1, [door(2, 1.0)]);
+    [[-6, -2.8], [-3.5, -2.8], [-6, 0.8], [-3.5, 0.8]].forEach(p => {
+      list.push(makeFurn('meja', p[0], p[1], 0));
+      list.push(makeFurn('kursi', p[0], p[1] - 0.8, 0));
+    });
+    list.push(makeFurn('lemari', -7.7, -0.5, 90));
+    list.push(makeFurn('lemari', -7.7, -2.0, 90));
+    list.push(makeFurn('tanaman', -7.3, 4.3, 0));
+    list.push(makeFurn('rapat', 5, -2, 0));
+    [4.2, 5, 5.8].forEach(x => {
+      list.push(makeFurn('kursi', x, -3.0, 0));
+      list.push(makeFurn('kursi', x, -1.0, 180));
+    });
+    list.push(makeFurn('kursi', 3.45, -2, 90));
+    list.push(makeFurn('kursi', 6.55, -2, 270));
+    const sofa = makeFurn('sofa', 5, 4.45, 180);
+    list.push(sofa);
+    const ct = makeFurn('meja', 5, 3.3, 0);
+    ct.w = 0.9; ct.d = 0.5; ct.h = 0.4;
+    list.push(ct);
+    list.push(makeFurn('tanaman', 7.3, 4.3, 0));
+    return list;
+  }
+
+  function loadSample() {
+    showWelcome(false);
+    const list = sampleOffice();
+    loadObjs(list, nextId);
+    clearBg();
+    fitCamera();
+    scheduleAutosave();
+    flash('Contoh kantor 3D realistis dimuat. Seret untuk memutar kamera, scroll untuk zoom.');
+  }
+  function newProject() {
+    fh = null;
+    const doNew = () => {
+      pushHistory();
+      loadObjs([], 1);
+      clearBg();
+      fitCamera();
+      scheduleAutosave();
+      showWelcome(true);
+    };
+    if (objs.length) {
+      askConfirm('Mulai proyek baru? Pekerjaan yang belum disimpan akan hilang (undo masih tersedia sampai halaman ditutup).', doNew);
+      return;
+    }
+    doNew();
+  }
+
+  const wel = $('welcome');
+  function showWelcome(on) { wel.style.display = on ? 'flex' : 'none'; }
+  function loadTpl() {
+    showWelcome(false);
+    nextId = 1;
+    const W = [[0,0,9,0],[9,0,9,6],[9,6,0,6],[0,6,0,0],[4,0,4,6],[4,3,9,3]].map(a => makeWall(a[0],a[1],a[2],a[3]));
+    W[0].op = [{ k: 'pintu', s: 2, w: 0.9, hh: 2.1 }, { k: 'jendela', s: 6.5, w: 1.5, sill: 0.9, hh: 1.2 }];
+    W[2].op = [{ k: 'jendela', s: 2, w: 1.5, sill: 0.9, hh: 1.2 }, { k: 'jendela', s: 6.5, w: 1.5, sill: 0.9, hh: 1.2 }];
+    W[4].op = [{ k: 'pintu', s: 1.5, w: 0.9, hh: 2.1 }, { k: 'pintu', s: 4.5, w: 0.9, hh: 2.1 }];
+    const rt = makeRoom(0,0,4,6,'#f1efe9','Ruang tamu'); rt.mat = 'marmer';
+    const km = makeRoom(4,0,9,3,'#e6dec8','Kamar'); km.mat = 'kayu';
+    const dp = makeRoom(4,3,9,6,'#e8eef5','Dapur'); dp.mat = 'keramik';
+    const furns = [
+      makeFurn('sofa', 1.2, 3.2, 90),
+      makeFurn('tanaman', 0.6, 5.3, 0),
+      makeFurn('kasur', 7.4, 1.5, 270),
+      makeFurn('lemari', 5.2, 0.45, 0),
+      makeFurn('dapur', 6.8, 5.55, 180)
+    ];
+    loadObjs(W.concat([rt, km, dp], furns), nextId);
+    clearBg(); fitCamera(); scheduleAutosave();
+    flash('Template rumah 3D realistis dimuat.');
+  }
+  async function shareLink() {
+    try {
+      const st = new Blob([snapshot()]).stream().pipeThrough(new CompressionStream('gzip'));
+      const b = new Uint8Array(await new Response(st).arrayBuffer());
+      let t = ''; b.forEach(c => t += String.fromCharCode(c));
+      const u = location.href.split('#')[0] + '#p=' + btoa(t).replace(/\+/g, '-').replace(/\//g, '_');
+      try {
+        await navigator.clipboard.writeText(u);
+        flash('Link disalin. Gambar latar tidak ikut terbagi.');
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = u; document.body.appendChild(ta); ta.select();
+        let copied = false;
+        try { copied = document.execCommand('copy'); } catch (e2) { copied = false; }
+        ta.remove();
+        if (copied) flash('Link disalin. Gambar latar tidak ikut terbagi.');
+        else showShareBox(u);
+      }
+    } catch (e) { flash('Browser tidak mendukung link bagikan.'); }
+  }
+  async function loadHash() {
+    const m = location.hash.match(/^#p=(.+)/);
+    if (!m) return false;
+    try {
+      const a = Uint8Array.from(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+      const d = JSON.parse(await new Response(new Blob([a]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+      loadObjs(d.objs, d.nextId); fitCamera(); return true;
+    } catch (e) { return false; }
+  }
+
+  const gltfLoader = THREE.GLTFLoader ? new THREE.GLTFLoader() : null;
+  function b64(buf) { let t = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) t += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(t); }
+  function unb64(t) { const r = atob(t), u = new Uint8Array(r.length); for (let i = 0; i < r.length; i++) u[i] = r.charCodeAt(i); return u.buffer; }
+  function idb() { return new Promise((res, rej) => { const r = indexedDB.open('denah3d', 1); r.onupgradeneeded = () => r.result.createObjectStore('models'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+  async function idbPut(id, v) { try { const d = await idb(); d.transaction('models', 'readwrite').objectStore('models').put(v, id); } catch (e) { /* abaikan */ } }
+  async function idbAll() {
+    try {
+      const d = await idb();
+      return await new Promise(res => { const o = {}, q = d.transaction('models').objectStore('models').openCursor(); q.onsuccess = () => { const c = q.result; if (c) { o[c.key] = c.value; c.continue(); } else res(o); }; q.onerror = () => res({}); });
+    } catch (e) { return {}; }
+  }
+  function addModelButton(key) {
+    const bx = $('myModels');
+    if (bx.querySelector('[data-furn="' + key + '"]')) return;
+    const b = document.createElement('button');
+    b.className = 'tool'; b.dataset.furn = key; b.innerHTML = '<span>🧩</span>' + CAT[key].n;
+    b.addEventListener('click', () => setTool('place', key));
+    bx.appendChild(b);
+  }
+  function registerModel(id, name, buf, cb) {
+    if (!gltfLoader) { flash('Pemuat GLB gagal dimuat (periksa internet).'); cb && cb(false); return; }
+    gltfLoader.parse(buf, '', gltf => {
+      const sc = gltf.scene, bb = new THREE.Box3().setFromObject(sc), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3());
+      sc.position.set(-c.x, -bb.min.y, -c.z);
+      const wrap = new THREE.Group(); wrap.add(sc);
+      sz.set(Math.max(sz.x, 1e-3), Math.max(sz.y, 1e-3), Math.max(sz.z, 1e-3));
+      const k = Math.max(sz.x, sz.y, sz.z) > 50 ? 0.01 : 1;   // asumsi cm jika sangat besar
+      models.set(id, { name: name, buf: buf, tpl: wrap, size: sz });
+      CAT['m_' + id] = { n: name, e: '🧩', w: fmt(sz.x * k), d: fmt(sz.z * k), h: fmt(sz.y * k), c: '#ffffff', model: id };
+      addModelButton('m_' + id);
+      cb && cb(true);
+    }, () => { flash('Gagal membaca model (mungkin terkompresi Draco atau bukan .glb).'); cb && cb(false); });
+  }
+  function loadModels(m) {
+    Object.keys(m || {}).forEach(id => {
+      const buf = unb64(m[id].b64);
+      registerModel(id, m[id].name, buf.slice(0), ok => { if (ok) { idbPut(id, { name: m[id].name, buf: buf }); rebuildAll(); updateStats(); } });
+    });
+  }
+
+  function download(href, name) {
+    const a = document.createElement('a');
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    download(url, name);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+  let fh = null;
+  async function saveProject(asNew) {
+    const d = { v: 2, objs: objs, nextId: nextId, lebar: bgW(), opas: +$('opas').value, bg: null };
+    if (bg.loaded) { try { d.bg = src.toDataURL('image/jpeg', 0.85); } catch (e) { d.bg = null; } }
+    d.models = {};
+    objs.forEach(o => { const c = CAT[o.type]; if (c && c.model && models.has(c.model) && !d.models[c.model]) d.models[c.model] = { name: models.get(c.model).name, b64: b64(models.get(c.model).buf) }; });
+    const json = JSON.stringify(d);
+    if (window.showSaveFilePicker) {
+      try {
+        if (!fh || asNew === true) fh = await window.showSaveFilePicker({ suggestedName: 'denah3d-proyek.json', types: [{ description: 'Proyek denah', accept: { 'application/json': ['.json'] } }] });
+        const w = await fh.createWritable(); await w.write(json); await w.close();
+        flash('Tersimpan ke ' + fh.name + ' (Ctrl+S untuk simpan lagi)'); return;
+      } catch (e) { if (e && e.name === 'AbortError') return; fh = null; }
+    }
+    downloadBlob(new Blob([json], { type: 'application/json' }), 'denah3d-proyek.json');
+  }
+  function openProject(file) {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!Array.isArray(d.objs)) throw new Error('format');
+        loadObjs(d.objs, d.nextId);
+        loadModels(d.models);
+        undoS.length = 0; redoS.length = 0; syncUndo();
+        if (d.lebar) $('lebar').value = d.lebar;
+        if (d.opas) { $('opas').value = d.opas; syncLabels(); }
+        if (d.bg) {
+          const im = new Image();
+          im.onload = () => { setSource(im); fitCamera(); };
+          im.src = d.bg;
+        } else { clearBg(); fitCamera(); }
+        scheduleAutosave();
+        flash('Proyek dibuka.');
+      } catch (e) { flash('File proyek tidak valid.'); }
+    };
+    r.readAsText(file);
+  }
+  function exportPng() {
+    renderer.render(scene, camera);
+    download(dom.toDataURL('image/png'), 'denah3d.png');
+  }
+  function exportGlb() {
+    if (!THREE.GLTFExporter) { flash('Exporter GLB tidak termuat (butuh internet).'); return; }
+    const prev = selId;
+    select(null);
+    new THREE.GLTFExporter().parse(root, res => {
+      downloadBlob(new Blob([res], { type: 'model/gltf-binary' }), 'denah3d.glb');
+      select(prev);
+    }, { binary: true });
+  }
+  function exportCsv() {
+    const rows = ['tipe,nama,pusat_x_m,pusat_z_m,lebar_m,dalam_m,tinggi_m,rotasi_deg,keterangan'];
+    const esc = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+    objs.forEach(o => {
+      if (o.type === 'wall') {
+        const L = wallLen(o), ang = Math.atan2(o.z2 - o.z1, o.x2 - o.x1) * 180 / Math.PI;
+        rows.push(['dinding', 'Dinding', fmt((o.x1 + o.x2) / 2), fmt((o.z1 + o.z2) / 2), fmt(L), fmt(o.t), fmt(o.h), fmt(ang), esc((o.op || []).length + ' bukaan')].join(','));
+      } else if (o.type === 'room') {
+        rows.push(['ruangan', esc(o.label), fmt((o.x1 + o.x2) / 2), fmt((o.z1 + o.z2) / 2), fmt(Math.abs(o.x2 - o.x1)), fmt(Math.abs(o.z2 - o.z1)), '', 0, esc(fmt(Math.abs(o.x2 - o.x1) * Math.abs(o.z2 - o.z1)) + ' m2')].join(','));
+      } else if (o.type === 'teks') {
+        rows.push(['teks', esc(o.text), fmt(o.x), fmt(o.z), '', '', '', fmt(o.rot), ''].join(','));
+      } else {
+        rows.push([o.type, esc(typeName(o)), fmt(o.x), fmt(o.z), fmt(o.w), fmt(o.d), fmt(o.h), fmt(o.rot), ''].join(','));
+      }
+    });
+    downloadBlob(new Blob([rows.join('\n')], { type: 'text/csv' }), 'objek_denah3d.csv');
+  }
+
+  // =====================================================================
+  //  UI wiring
+  // =====================================================================
+  function syncLabels() {
+    $('vOpas').textContent = Math.round(+$('opas').value * 100) + '%';
+    $('vRes').textContent = $('res').value + ' kolom';
+    $('vThr').textContent = $('thr').value;
+    $('vMinlen').textContent = (+$('minlen').value).toFixed(1) + ' m';
+  }
+
+  // katalog furnitur
+  const furnBox = $('furn');
+  Object.keys(CAT).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'tool';
+    b.dataset.furn = k;
+    b.innerHTML = '<span>' + CAT[k].e + '</span>' + CAT[k].n;
+    b.addEventListener('click', () => { showWelcome(false); setTool('place', k); });
+    furnBox.appendChild(b);
+  });
+  document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => { showWelcome(false); setTool(b.dataset.tool); }));
+
+  $('btnUndo').addEventListener('click', undo);
+  $('btnRedo').addEventListener('click', redo);
+  $('btnView').addEventListener('click', () => { setView2D(!view2d); });
+  $('btnFit').addEventListener('click', fitCamera);
+  $('btnDone').addEventListener('click', finishChain);
+
+  $('file').addEventListener('change', e => { loadImageFile(e.target.files[0]); e.target.value = ''; });
+  $('openFile').addEventListener('change', e => { openProject(e.target.files[0]); e.target.value = ''; });
+  $('btnClearBg').addEventListener('click', clearBg);
+  $('btnDetect').addEventListener('click', detectWalls);
+  $('btnClearAuto').addEventListener('click', clearAuto);
+  $('btnCalibApply').addEventListener('click', applyCalib);
+  $('btnCalibCancel').addEventListener('click', clearCalib);
+  $('btnSample').addEventListener('click', () => {
+    const doSample = () => { pushHistory(); loadSample(); };
+    if (!objs.length) doSample();
+    else askConfirm('Ganti isi proyek dengan contoh kantor?', doSample);
+  });
+  $('btnNew').addEventListener('click', newProject);
+  $('btnSave').addEventListener('click', saveProject);
+  $('btnPng').addEventListener('click', exportPng);
+  $('btnGlb').addEventListener('click', exportGlb);
+  $('btnCsv').addEventListener('click', exportCsv);
+
+  $('lebar').addEventListener('change', () => { updateBg(); scheduleSun(); });
+  $('opas').addEventListener('input', () => { syncLabels(); if (bg.mesh) bg.mesh.material.opacity = +$('opas').value; });
+  $('showbg').addEventListener('change', () => { if (bg.mesh) bg.mesh.visible = $('showbg').checked; });
+  $('metode').addEventListener('change', () => { $('thr').value = $('metode').value === 'min' ? 40 : 128; syncLabels(); });
+  ['res', 'thr', 'minlen'].forEach(id => $(id).addEventListener('input', syncLabels));
+  $('shadow').addEventListener('change', () => { sun.castShadow = $('shadow').checked; renderer.shadowMap.enabled = $('shadow').checked; scene.traverse(n => { if (n.material) (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => { if (m) m.needsUpdate = true; }); }); });
+  $('showgrid').addEventListener('change', () => { grid.visible = $('showgrid').checked; });
+  $('snap').addEventListener('change', () => { try { localStorage.setItem('denah3d-snap', $('snap').value); } catch (e) { /* abaikan */ } });
+
+  // drag & drop gambar
+  ['dragenter', 'dragover'].forEach(ev => view.addEventListener(ev, e => { e.preventDefault(); $('drop').style.display = 'flex'; }));
+  ['dragleave', 'drop'].forEach(ev => view.addEventListener(ev, e => { e.preventDefault(); $('drop').style.display = 'none'; }));
+  view.addEventListener('drop', e => loadImageFile(e.dataTransfer.files[0]));
+
+  // keyboard
+  window.addEventListener('keyup', e => { wk[e.key.toLowerCase()] = false; });
+  function setWalk(on) {
+    if (on && view2d) { flash('Beralih ke 3D dulu (tombol 2D/3D).'); return; }
+    walk = on; $('btnWalk').classList.toggle('on', on); $('pad').style.display = on ? 'grid' : 'none'; updateRoof();
+    if (on) {
+      saved = { p: camera.position.clone(), t: controls.target.clone() };
+      const b = bounds(), y = 1.6 + curLv * FH;
+      camera.position.set(b.cx, y, b.cz); controls.target.set(b.cx, y, b.cz - 0.5);
+      controls.enableZoom = false; controls.enablePan = false;
+      controls.minDistance = controls.maxDistance = 0.5; controls.maxPolarAngle = Math.PI * 0.92; controls.rotateSpeed = -0.4;
+      select(null); flash('Mode jalan: W/A/S/D atau tombol panah untuk melangkah, seret untuk menoleh.');
+    } else if (saved) {
+      controls.enableZoom = controls.enablePan = true; controls.minDistance = 0; controls.maxDistance = Infinity;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02; controls.rotateSpeed = 1;
+      camera.position.copy(saved.p); controls.target.copy(saved.t);
+    }
+  }
+  $('btnWalk').onclick = () => setWalk(!walk);
+  $('pad').querySelectorAll('button').forEach(b => {
+    const k = b.dataset.k;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); wk[k] = true; });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => { wk[k] = false; }));
+  });
+  $('btnPrint').onclick = () => { if (walk) setWalk(false); $('dims').checked = true; updateDims(); if (!view2d) setView2D(true); fitCamera(); flash('Menyiapkan cetak…'); setTimeout(() => window.print(), 600); };
+  window.addEventListener('beforeprint', () => {
+    scene.background = new THREE.Color(0xffffff); grid.visible = true;
+    $('cap').textContent = 'Denah 3D Studio · tampak atas · jarak antar garis grid = 1 m · ' + new Date().toLocaleDateString('id-ID');
+  });
+  window.addEventListener('afterprint', () => { applyAtmosphere(); grid.visible = $('showgrid').checked; });
+  window.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && (t.type === 'text' || t.type === 'number')))) return;
+    const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+    if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+    if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+    if (mod && k === 's') { e.preventDefault(); saveProject(e.shiftKey); return; }
+    if (mod && k === 'a') {
+      e.preventDefault();
+      const ids = objs.filter(o => lvOf(o) === curLv).map(o => o.id);
+      if (ids.length) { select(ids[0]); ids.slice(1).forEach(i => { extra.add(i); setHL(i, true); }); flash(ids.length + ' objek dipilih'); }
+      return;
+    }
+    if (mod && k === 'd') { e.preventDefault(); duplicateSel(); return; }
+    if (walk && /^(w|a|s|d|arrowup|arrowdown|arrowleft|arrowright)$/.test(k)) { e.preventDefault(); wk[k] = true; return; }
+    if (tool === 'wall' && chain) {
+      if (/^[0-9.,]$/.test(e.key)) { e.preventDefault(); numBuf += e.key === ',' ? '.' : e.key; setHint('Panjang: ' + numBuf + ' m · Enter terapkan · Backspace hapus'); return; }
+      if (k === 'backspace' && numBuf) { e.preventDefault(); numBuf = numBuf.slice(0, -1); setHint('Panjang: ' + numBuf + ' m'); return; }
+      if (k === 'enter' && numBuf) {
+        const L = parseFloat(numBuf); numBuf = '';
+        const dx = lastQ ? lastQ.x - chain.x : 0, dz = lastQ ? lastQ.z - chain.z : 0, l = Math.hypot(dx, dz);
+        if (L > 0 && l > 1e-4) {
+          pushHistory();
+          const nx = chain.x + dx / l * L, nz = chain.z + dz / l * L;
+          addObj(makeWall(chain.x, chain.z, nx, nz));
+          chain = { x: nx, z: nz }; setPrevLine(chain, chain);
+          updateStats(); scheduleSun();
+        } else flash('Arahkan kursor ke arah dinding dulu, lalu ketik panjangnya.');
+        return;
+      }
+    }
+    if (k === 'delete' || k === 'backspace') { if (selId !== null) { e.preventDefault(); deleteSel(); } return; }
+    if (k === 'escape') {
+      if (chain) finishChain();
+      else if (tool !== 'select') setTool('select');
+      else select(null);
+      return;
+    }
+    if (k === 'enter') { finishChain(); return; }
+    if (k === 'r') {
+      if (tool === 'place') { placeRot = (placeRot + 90) % 360; rebuildGhost(); if (ghost) { ghost.position.set(ghostPos.x, 0, ghostPos.z); ghost.visible = true; } }
+      else rotateSel(90);
+      return;
+    }
+    if (k.indexOf('arrow') === 0 && selId !== null && tool === 'select') {
+      e.preventDefault();
+      const o = entries.get(selId).o, st = (+$('snap').value) || 0.1;
+      const dx = k === 'arrowleft' ? -st : k === 'arrowright' ? st : 0;
+      const dz = k === 'arrowup' ? -st : k === 'arrowdown' ? st : 0;
+      pushHistory();
+      if (o.type === 'wall' || o.type === 'room') { o.x1 += dx; o.x2 += dx; o.z1 += dz; o.z2 += dz; }
+      else { o.x += dx; o.z += dz; }
+      rebuildObj(o); updateHandles(); renderProps();
+    }
+  });
+
+  function resize() {
+    const w = view.clientWidth, h = view.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(view);
+  window.addEventListener('resize', resize);
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    if (walk) {
+      const now = performance.now(), dt = Math.min(0.1, (now - (lastT || now)) / 1000); lastT = now;
+      const f = (wk.w || wk.arrowup ? 1 : 0) - (wk.s || wk.arrowdown ? 1 : 0), r = (wk.d || wk.arrowright ? 1 : 0) - (wk.a || wk.arrowleft ? 1 : 0);
+      if (f || r) {
+        const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
+        const mv = dir.clone().multiplyScalar(f).add(new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(r)).multiplyScalar(2.5 * dt);
+        camera.position.add(mv); controls.target.add(mv);
+      }
+    } else lastT = 0;
+    controls.update();
+    if (handleGroup.children.length) {
+      const dist = camera.position.distanceTo(controls.target);
+      const s = Math.max(0.5, dist * 0.014 / 0.22);
+      handleGroup.children.forEach(h => h.scale.setScalar(s));
+    }
+    renderer.render(scene, camera);
+  })();
+
+  // =====================================================================
+  //  Mulai
+  // =====================================================================
+  try { const sv = localStorage.getItem('denah3d-snap'); if (sv !== null) $('snap').value = sv; } catch (e) { /* abaikan */ }
+  syncLabels();
+  syncUndo();
+  resize();
+  setTool('select');
+  let restored = false;
+  try {
+    const raw = localStorage.getItem('denah3d-v2');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (Array.isArray(d.objs) && d.objs.length) { loadObjs(d.objs, d.nextId); restored = true; }
+    }
+  } catch (e) { restored = false; }
+  fitCamera();
+  if (!restored) showWelcome(true);
+  $('wNew').onclick = () => showWelcome(false);
+  $('wImg').onclick = () => { showWelcome(false); $('secBg').open = true; $('file').click(); };
+  $('wTpl').onclick = () => { loadTpl(); showWelcome(false); };
+  $('wSample').onclick = () => { loadSample(); showWelcome(false); };
+  $('btnMulti').onclick = () => { multiMode = !multiMode; $('btnMulti').classList.toggle('on', multiMode); flash(multiMode ? 'Mode pilih banyak: ketuk objek untuk menambah/melepas.' : 'Mode pilih banyak mati.'); };
+  $('dims').addEventListener('change', updateDims);
+  $('atap').addEventListener('change', updateRoof);
+  $('suasana').addEventListener('change', applyAtmosphere);
+  $('lampuInt').addEventListener('change', updateRoomLights);
+  $('btnLight').onclick = () => {
+    const modes = ['siang', 'sore', 'malam', 'studio'];
+    const labels = { siang: 'Siang Cerah', sore: 'Sore Golden Hour', malam: 'Malam & Lampu Interior', studio: 'Studio Arsitektur Gelap' };
+    const next = modes[(modes.indexOf($('suasana').value) + 1) % modes.length];
+    $('suasana').value = next;
+    applyAtmosphere();
+    flash('Suasana pencahayaan: ' + labels[next]);
+  };
+  applyAtmosphere();
+  $('btnHelp').onclick = () => showWelcome(true);
+  $('btnShare').onclick = shareLink;
+  $('glbFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (f.size > 15e6) flash('Model besar (>15 MB) bisa membuat aplikasi lambat.');
+    const buf = await f.arrayBuffer(), id = 'u' + Date.now().toString(36), name = f.name.replace(/\.[^.]+$/, '').slice(0, 16);
+    registerModel(id, name, buf.slice(0), ok => { if (ok) { idbPut(id, { name: name, buf: buf }); setTool('place', 'm_' + id); flash('Model "' + name + '" siap. Klik di denah untuk menaruh; ubah ukurannya di properti.'); } });
+  });
+  idbAll().then(o => Object.keys(o).forEach(id => registerModel(id, o[id].name, o[id].buf.slice(0), ok => { if (ok) { rebuildAll(); updateStats(); } })));
+  loadHash().then(ok => { if (ok) showWelcome(false); });
+  renderProps();
+  updateSun();
+})();
+</script>
+</body>
+</html>
