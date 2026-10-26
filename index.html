@@ -941,10 +941,10 @@ button:disabled{opacity:.4;cursor:default}
         const gFrost = M('#e9edf3', { transparent: true, opacity: 0.8, roughness: 0.6, depthWrite: false });
         const gLight = M('#e3e9f1', { transparent: true, opacity: 0.4, roughness: 0.35, depthWrite: false });
         const gClear = M('#bfe6ff', { transparent: true, opacity: 0.3, roughness: 0.05, metalness: 0.15, depthWrite: false });
-        const frost = o.sty === 'kaca', fd = Math.max(0.05, Math.min(o.t, 0.09));
-        const bands = (frost ? [[0.06, 1.05, gFrost], [1.05, 1.25, gClear], [1.25, 2.1, gFrost], [2.1, o.h, gLight]] : [[0.06, o.h, gClear]]).filter(q => q[0] < o.h);
-        const rails = (frost ? [[0.03, 0.06], [1.05, 0.04], [1.25, 0.04], [2.1, 0.07], [o.h - 0.03, 0.06]] : [[0.03, 0.06], [2.1, 0.07], [o.h - 0.03, 0.06]]).filter(q => q[0] < o.h);
-        const nP = Math.max(1, Math.round((L + 2 * ext) / 1.2)), stp = (L + 2 * ext) / nP, posts = [];
+        const frost = o.sty === 'kaca', fd = Math.max(0.05, Math.min(o.t, 0.09)), pw2 = (o.pw || 0.04) / 2, rh = o.rh || 0.06;
+        const bands = (frost ? [[rh, 1.05, gFrost], [1.05, 1.25, gClear], [1.25, 2.1, gFrost], [2.1, o.h, gLight]] : [[rh, o.h, gClear]]).filter(q => q[0] < o.h);
+        const rails = (frost ? [[rh / 2, rh], [1.05, rh * 0.7], [1.25, rh * 0.7], [2.1, rh * 1.2], [o.h - rh / 2, rh]] : [[rh / 2, rh], [2.1, rh * 1.2], [o.h - rh / 2, rh]]).filter(q => q[0] < o.h);
+        const nP = Math.max(1, Math.round((L + 2 * ext) / (o.ms || 1.2))), stp = (L + 2 * ext) / nP, posts = [];
         for (let i = 0; i <= nP; i++) posts.push(-ext + i * stp);
         const gb = (p0, p1, s0, s1, m, th, ns) => {
           if (p1 - p0 < 1e-4 || s1 - s0 < 1e-4) return;
@@ -954,7 +954,7 @@ button:disabled{opacity:.4;cursor:default}
         glassPanel = (a, b, y0, y1) => {
           bands.forEach(bd => gb(a, b, Math.max(y0, bd[0]), Math.min(y1, bd[1]), bd[2], 0.012, true));
           rails.forEach(r => gb(a, b, Math.max(y0, r[0] - r[1] / 2), Math.min(y1, r[0] + r[1] / 2), fm, fd));
-          posts.forEach(px => { if (px + 0.02 > a && px - 0.02 < b) gb(Math.max(a, px - 0.02), Math.min(b, px + 0.02), y0, y1, fm, fd); });
+          posts.forEach(px => { if (px + pw2 > a && px - pw2 < b) gb(Math.max(a, px - pw2), Math.min(b, px + pw2), y0, y1, fm, fd); });
         };
       }
       const seg = (a, b, y0, y1, m, th) => {
@@ -1990,7 +1990,12 @@ button:disabled{opacity:.4;cursor:default}
         sm.addEventListener('change', () => commit(o, () => { o.sty = sm.value; if (o.sty && o.t > 0.12) o.t = 0.1; }));
         field(box, 'Model dinding', sm, true);
       }
-      if (o.sty) col(box, 'Warna rangka', o.fc || '#9ca3a0', v => { o.fc = v; });
+      if (o.sty) {
+        col(box, 'Warna rangka', o.fc || '#9ca3a0', v => { o.fc = v; });
+        num(box, 'Jarak tiang (m)', o.ms || 1.2, 0.4, 6, 0.05, v => { o.ms = v; });
+        num(box, 'Lebar list tegak (m)', o.pw || 0.04, 0.01, 0.3, 0.01, v => { o.pw = v; });
+        num(box, 'Tebal list datar (m)', o.rh || 0.06, 0.02, 0.3, 0.01, v => { o.rh = v; });
+      }
       col(box, 'Warna sisi A', o.color, v => { o.color = v; });
       col(box, 'Warna sisi B', o.c2 || o.color, v => { o.c2 = v; });
       (o.op || []).forEach((p, i) => {
