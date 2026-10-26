@@ -886,6 +886,31 @@ button:disabled{opacity:.4;cursor:default}
     return _artTex;
   }
 
+let _tvTex = null;
+  function tvTex() {
+    if (_tvTex) return _tvTex;
+    const c = document.createElement('canvas'); c.width = 512; c.height = 288;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 512, 288);
+    g.addColorStop(0, '#040714'); g.addColorStop(0.55, '#0b1a3c'); g.addColorStop(1, '#10122e');
+    x.fillStyle = g; x.fillRect(0, 0, 512, 288);
+    [[130, 90, 190, 'rgba(34,211,238,0.55)'], [380, 70, 170, 'rgba(168,85,247,0.5)'], [300, 210, 200, 'rgba(59,130,246,0.4)'], [60, 240, 120, 'rgba(244,114,182,0.35)']].forEach(b => {
+      const r = x.createRadialGradient(b[0], b[1], 4, b[0], b[1], b[2]);
+      r.addColorStop(0, b[3]); r.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = r; x.fillRect(0, 0, 512, 288);
+    });
+    x.fillStyle = 'rgba(255,255,255,0.92)'; x.font = 'bold 34px system-ui, sans-serif'; x.fillText('12:30', 28, 56);
+    x.fillStyle = 'rgba(255,255,255,0.55)'; x.font = '15px system-ui, sans-serif'; x.fillText('Senin, 26 Oktober', 30, 78);
+    const tiles = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#a855f7'];
+    tiles.forEach((col, i) => {
+      const tx = 28 + i * 92, ty = 196;
+      x.fillStyle = 'rgba(255,255,255,0.1)'; x.beginPath(); x.roundRect ? x.roundRect(tx, ty, 80, 56, 10) : x.rect(tx, ty, 80, 56); x.fill();
+      x.fillStyle = col; x.beginPath(); x.arc(tx + 40, ty + 28, 13, 0, Math.PI * 2); x.fill();
+    });
+    _tvTex = new THREE.CanvasTexture(c); _tvTex.encoding = THREE.sRGBEncoding; _tvTex.anisotropy = 4; _tvTex.userData = { shared: true };
+    return _tvTex;
+  }
+
   function buildGroup(o, ghostMode) {
     const g = new THREE.Group();
     const mats = [];
@@ -921,6 +946,20 @@ button:disabled{opacity:.4;cursor:default}
       g.add(p);
     };
 
+    const tvUnit = (tw, th, px, py, zb, mount) => {
+      const bez = M('#07090e', { roughness: 0.3, metalness: 0.7 });
+      const cas = M('#1b2029', { roughness: 0.5, metalness: 0.5 });
+      const tex = tvTex();
+      const scr = M('#ffffff', { map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55, roughness: 0.18 });
+      const gls = M('#ffffff', { transparent: true, opacity: 0.1, roughness: 0.02, metalness: 0.2, clearcoat: 1.0, clearcoatRoughness: 0.03, envMapIntensity: 1.8 });
+      const cy0 = py + th / 2;
+      if (mount) box(tw * 0.26, th * 0.3, 0.012, px, cy0, zb + 0.006, M('#2a303b', { metalness: 0.7, roughness: 0.4 }));
+      box(tw * 0.7, th * 0.68, 0.026, px, cy0, zb + 0.025, cas);
+      box(tw, th, 0.02, px, cy0, zb + 0.04, bez);
+      box(tw - 0.014, th - 0.014, 0.004, px, cy0, zb + 0.0505, scr);
+      const gm = box(tw - 0.014, th - 0.014, 0.002, px, cy0, zb + 0.0535, gls); gm.castShadow = false;
+      box(0.008, 0.004, 0.002, px + tw / 2 - 0.05, py + 0.0035, zb + 0.0515, M('#ef4444', { emissive: 0xff2222 }));
+    };
     if (o.type === 'wall') {
       const dx = o.x2 - o.x1, dz = o.z2 - o.z1, L = Math.hypot(dx, dz);
       g.position.set((o.x1 + o.x2) / 2, 0, (o.z1 + o.z2) / 2);
@@ -1578,11 +1617,7 @@ button:disabled{opacity:.4;cursor:default}
           break;
         }
         case 'tvdinding': {
-          const bz = M('#0b0f19', { roughness: 0.3, metalness: 0.6 });
-          box(w, h, d, 0, h / 2, 0, bz);
-          box(w - 0.03, h - 0.03, 0.004, 0, h / 2, d / 2 + 0.001, M('#ffffff', { map: screenTex(), emissive: 0x1e3a5f, roughness: 0.12 }));
-          box(w * 0.3, h * 0.35, 0.025, 0, h / 2, -d / 2 - 0.0125, dark());
-          box(w * 0.6, 0.05, 0.08, 0, -0.07, 0.01, dark());
+          tvUnit(w, h, 0, 0, -d / 2, true);
           break;
         }
         case 'tvstand': {
@@ -1595,11 +1630,11 @@ button:disabled{opacity:.4;cursor:default}
             box(dw - 0.012, h - 0.2, 0.015, cx, 0.12 + (h - 0.12) / 2, d / 2 + 0.007, wd2);
             box(0.1, 0.012, 0.02, cx, h - 0.1, d / 2 + 0.022, ch);
           }
-          const tw = Math.min(w * 0.8, 1.3), th = tw * 0.5625;
-          box(0.45, 0.014, 0.2, 0, h + 0.007, 0, mt);
-          cyl(0.02, 0.02, 0.09, 0, h + 0.055, 0, mt);
-          box(tw, th, 0.04, 0, h + 0.1 + th / 2, 0, mt);
-          box(tw - 0.03, th - 0.03, 0.004, 0, h + 0.1 + th / 2, 0.021, M('#ffffff', { map: screenTex(), emissive: 0x1e3a5f, roughness: 0.12 }));
+          const tw = Math.min(w * 0.8, 1.3), th = tw * 0.5625, ty = h + 0.085;
+          const mf = M('#aeb6c2', { metalness: 0.9, roughness: 0.25 });
+          box(Math.min(0.55, tw * 0.5), 0.012, 0.2, 0, h + 0.006, -0.015, mf);
+          box(0.07, 0.08, 0.03, 0, h + 0.05, -0.015, mf);
+          tvUnit(tw, th, 0, ty, -0.04, false);
           break;
         }
         case 'ac': {
