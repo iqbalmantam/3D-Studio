@@ -161,6 +161,7 @@ button:disabled{opacity:.4;cursor:default}
           <option value="1">1 m</option>
         </select>
         <div class="chk"><input id="ortho" type="checkbox" checked><label for="ortho">Kunci dinding lurus (horizontal / vertikal)</label></div>
+        <div class="chk"><input id="guides" type="checkbox" checked><label for="guides">Garis bantu perataan &amp; jarak (tahan Alt untuk mematikan sementara)</label></div>
         <div class="chk"><input id="shadow" type="checkbox" checked><label for="shadow">Bayangan lembut HD</label></div>
 
         <label for="suasana">Suasana &amp; pencahayaan 3D</label>
@@ -2643,6 +2644,155 @@ button:disabled{opacity:.4;cursor:default}
   prevRect.renderOrder = 998; prevRect.visible = false; prevRect.frustumCulled = false;
   helpers.add(prevRect);
 
+  // ===== Garis bantu perataan & jarak =====
+  const guideGroup = new THREE.Group();
+  helpers.add(guideGroup);
+  const MAG = 0xff4dd2, CYA = 0x22d3ee, AMB = 0xffd166;
+  function guidesOn() { return !$('guides') || $('guides').checked; }
+  function guideThr() { return Math.min(0.3, Math.max(0.06, camera.position.distanceTo(controls.target) * 0.012)); }
+  function clearGuides() { while (guideGroup.children.length) disposeGroup(guideGroup.children.pop()); }
+  function gLine(x1, z1, x2, z2, color, dashed) {
+    const y = 0.09 + curLv * FH;
+    const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x1, y, z1), new THREE.Vector3(x2, y, z2)]);
+    const m = dashed ? new THREE.LineDashedMaterial({ color: color, dashSize: 0.18, gapSize: 0.1, depthTest: false, transparent: true })
+      : new THREE.LineBasicMaterial({ color: color, depthTest: false });
+    const ln = new THREE.Line(geo, m);
+    if (dashed) ln.computeLineDistances();
+    ln.renderOrder = 996; ln.frustumCulled = false;
+    guideGroup.add(ln);
+  }
+  function gLabel(t, x, z, color) {
+    const tp = textPlane(t, 0.26, color);
+    tp.material.depthTest = false; tp.renderOrder = 997;
+    tp.position.set(x, 0.1 + curLv * FH, z);
+    guideGroup.add(tp);
+  }
+  function bbOf(o, ext) {
+    if (o.type === 'wall') { const t = ext ? o.t / 2 : 0; return { x0: Math.min(o.x1, o.x2) - t, x1: Math.max(o.x1, o.x2) + t, z0: Math.min(o.z1, o.z2) - t, z1: Math.max(o.z1, o.z2) + t }; }
+    if (o.type === 'room') return { x0: Math.min(o.x1, o.x2), x1: Math.max(o.x1, o.x2), z0: Math.min(o.z1, o.z2), z1: Math.max(o.z1, o.z2) };
+    if (o.type === 'teks') return { x0: o.x, x1: o.x, z0: o.z, z1: o.z };
+    const r = (o.rot || 0) * Math.PI / 180, c = Math.abs(Math.cos(r)), s = Math.abs(Math.sin(r));
+    const hx = (c * o.w + s * o.d) / 2, hz = (s * o.w + c * o.d) / 2;
+    return { x0: o.x - hx, x1: o.x + hx, z0: o.z - hz, z1: o.z + hz };
+  }
+  function anchorsOf(o) {
+    const b = bbOf(o, false), xs = [b.x0, (b.x0 + b.x1) / 2, b.x1], zs = [b.z0, (b.z0 + b.z1) / 2, b.z1];
+    if (o.type === 'wall') {
+      if (Math.abs(o.x1 - o.x2) < 1e-3) xs.push(o.x1 - o.t / 2, o.x1 + o.t / 2);
+      if (Math.abs(o.z1 - o.z2) < 1e-3) zs.push(o.z1 - o.t / 2, o.z1 + o.t / 2);
+    }
+    return { xs: xs, zs: zs };
+  }
+  function unionBB(list) {
+    let r = null;
+    list.forEach(o => { const b = bbOf(o, false); r = r ? { x0: Math.min(r.x0, b.x0), x1: Math.max(r.x1, b.x1), z0: Math.min(r.z0, b.z0), z1: Math.max(r.z1, b.z1) } : b; });
+    return r;
+  }
+  function shiftObj(o, sx, sz) {
+    if (o.type === 'wall' || o.type === 'room') { o.x1 += sx; o.x2 += sx; o.z1 += sz; o.z2 += sz; } else { o.x += sx; o.z += sz; }
+  }
+  function alignCalc(bb, excl, thr) {
+    const mx = [bb.x0, (bb.x0 + bb.x1) / 2, bb.x1], mz = [bb.z0, (bb.z0 + bb.z1) / 2, bb.z1];
+    let bx = null, bz = null;
+    objs.forEach(t => {
+      if (excl.indexOf(t) >= 0 || lvOf(t) !== curLv) return;
+      const a = anchorsOf(t);
+      a.xs.forEach(v => mx.forEach((m, i) => { const d = Math.abs(v - m); if (d <= thr && (!bx || d < bx.d - 1e-9)) bx = { d: d, s: v - m, v: v, i: i }; }));
+      a.zs.forEach(v => mz.forEach((m, i) => { const d = Math.abs(v - m); if (d <= thr && (!bz || d < bz.d - 1e-9)) bz = { d: d, s: v - m, v: v, i: i }; }));
+    });
+    return { bx: bx, bz: bz };
+  }
+  function drawGuides(bb, excl, r, gaps) {
+    clearGuides();
+    if (!guidesOn()) return;
+    const cands = objs.filter(t => excl.indexOf(t) < 0 && lvOf(t) === curLv);
+    if (r.bx) {
+      const v = r.bx.v; let z0 = bb.z0, z1 = bb.z1;
+      cands.forEach(t => { if (anchorsOf(t).xs.some(q => Math.abs(q - v) < 0.006)) { const b = bbOf(t, true); z0 = Math.min(z0, b.z0); z1 = Math.max(z1, b.z1); } });
+      gLine(v, z0 - 0.4, v, z1 + 0.4, r.bx.i === 1 ? MAG : CYA, true);
+    }
+    if (r.bz) {
+      const v = r.bz.v; let x0 = bb.x0, x1 = bb.x1;
+      cands.forEach(t => { if (anchorsOf(t).zs.some(q => Math.abs(q - v) < 0.006)) { const b = bbOf(t, true); x0 = Math.min(x0, b.x0); x1 = Math.max(x1, b.x1); } });
+      gLine(x0 - 0.4, v, x1 + 0.4, v, r.bz.i === 1 ? MAG : CYA, true);
+    }
+    if (!gaps) return;
+    let gx = null, gz = null;
+    const pt = (a0, a1) => (a1 - a0) < 1e-6;
+    cands.forEach(t => {
+      const b = bbOf(t, true);
+      const oz0 = Math.max(bb.z0, b.z0), oz1 = Math.min(bb.z1, b.z1);
+      if (oz1 - oz0 > 0.02 || (pt(bb.z0, bb.z1) && oz1 - oz0 > -1e-6)) {
+        const g1 = b.x0 - bb.x1, g2 = bb.x0 - b.x1, gp = g1 >= 0.01 ? g1 : (g2 >= 0.01 ? g2 : -1);
+        if (gp > 0 && (!gx || gp < gx.g)) gx = { g: gp, a: g1 >= 0.01 ? bb.x1 : b.x1, b: g1 >= 0.01 ? b.x0 : bb.x0, c: (oz0 + oz1) / 2 };
+      }
+      const ox0 = Math.max(bb.x0, b.x0), ox1 = Math.min(bb.x1, b.x1);
+      if (ox1 - ox0 > 0.02 || (pt(bb.x0, bb.x1) && ox1 - ox0 > -1e-6)) {
+        const g1 = b.z0 - bb.z1, g2 = bb.z0 - b.z1, gp = g1 >= 0.01 ? g1 : (g2 >= 0.01 ? g2 : -1);
+        if (gp > 0 && (!gz || gp < gz.g)) gz = { g: gp, a: g1 >= 0.01 ? bb.z1 : b.z1, b: g1 >= 0.01 ? b.z0 : bb.z0, c: (ox0 + ox1) / 2 };
+      }
+    });
+    if (gx && gx.g < 40) {
+      gLine(gx.a, gx.c, gx.b, gx.c, AMB, false);
+      gLine(gx.a, gx.c - 0.08, gx.a, gx.c + 0.08, AMB, false); gLine(gx.b, gx.c - 0.08, gx.b, gx.c + 0.08, AMB, false);
+      gLabel(fmt(gx.g) + ' m', (gx.a + gx.b) / 2, gx.c - 0.22, '#ffd166');
+    }
+    if (gz && gz.g < 40) {
+      gLine(gz.c, gz.a, gz.c, gz.b, AMB, false);
+      gLine(gz.c - 0.08, gz.a, gz.c + 0.08, gz.a, AMB, false); gLine(gz.c - 0.08, gz.b, gz.c + 0.08, gz.b, AMB, false);
+      gLabel(fmt(gz.g) + ' m', gz.c + 0.45, (gz.a + gz.b) / 2, '#ffd166');
+    }
+  }
+  function alignPt(pt, excl, lockX, lockZ, gaps) {
+    clearGuides();
+    if (!guidesOn()) return pt;
+    const r = alignCalc({ x0: pt.x, x1: pt.x, z0: pt.z, z1: pt.z }, excl, guideThr());
+    if (lockX) r.bx = null;
+    if (lockZ) r.bz = null;
+    const q = { x: pt.x + (r.bx ? r.bx.s : 0), z: pt.z + (r.bz ? r.bz.s : 0) };
+    drawGuides({ x0: q.x, x1: q.x, z0: q.z, z1: q.z }, excl, r, gaps);
+    return q;
+  }
+  function placePos(p) {
+    const x = snapV(p.x), z = snapV(p.z);
+    clearGuides();
+    if (!placeKey || !guidesOn()) return { x: x, z: z };
+    const c = CAT[placeKey], tmp = { type: placeKey, x: x, z: z, rot: placeRot, w: c.w, d: c.d, h: c.h };
+    const r = alignCalc(bbOf(tmp, false), [], guideThr());
+    tmp.x = x + (r.bx ? r.bx.s : 0); tmp.z = z + (r.bz ? r.bz.s : 0);
+    drawGuides(bbOf(tmp, false), [], r, true);
+    return { x: tmp.x, z: tmp.z };
+  }
+  function openingGuide(e, kind) {
+    clearGuides();
+    if (!guidesOn()) return;
+    const hit = pickObj(e, o => o.type === 'wall');
+    if (!hit) return;
+    const o = hit.o, L = wallLen(o), w = styleDefaults(kind, kind === 'pintu' ? $('stDoor').value : $('stWin').value).w;
+    if (L < w + 0.1) return;
+    const ux = (o.x2 - o.x1) / L, uz = (o.z2 - o.z1) / L, nx = -uz, nz = ux;
+    let s = (hit.point.x - o.x1) * ux + (hit.point.z - o.z1) * uz;
+    s = Math.min(L - w / 2, Math.max(w / 2, snapV(s)));
+    const center = Math.abs(s - L / 2) < 0.12;
+    if (center) s = L / 2;
+    const a = s - w / 2, b = s + w / 2;
+    let left = 0, right = L;
+    (o.op || []).forEach(q => { const qa = q.s - q.w / 2, qb = q.s + q.w / 2; if (qb <= a + 1e-6) left = Math.max(left, qb); if (qa >= b - 1e-6) right = Math.min(right, qa); });
+    const P = (t, off) => [o.x1 + ux * t + nx * off, o.z1 + uz * t + nz * off];
+    const off = o.t / 2 + 0.05, off2 = off + 0.2;
+    const ln = (t0, t1, of, col, dash) => { const A = P(t0, of), B = P(t1, of); gLine(A[0], A[1], B[0], B[1], col, dash); };
+    ln(a, b, off, AMB, false);
+    ln(a, a, off - 0.1, AMB, false); ln(b, b, off - 0.1, AMB, false);
+    const dim = (t0, t1) => {
+      if (t1 - t0 < 0.02) return;
+      ln(t0, t1, off2, AMB, false);
+      ln(t0, t0, off2 - 0.08, AMB, false); ln(t1, t1, off2 + 0.08, AMB, false);
+      const M = P((t0 + t1) / 2, off2 + 0.28);
+      gLabel(fmt(t1 - t0) + ' m', M[0], M[1], '#ffd166');
+    };
+    dim(left, a); dim(b, right);
+    if (center) { const A = P(L / 2, -0.7), B = P(L / 2, 0.9); gLine(A[0], A[1], B[0], B[1], MAG, true); }
+  }
   function setPrevLine(a, b) {
     const pa = prevLine.geometry.attributes.position;
     pa.setXYZ(0, a.x, 0.06, a.z); pa.setXYZ(1, b.x, 0.06, b.z);
@@ -2656,7 +2806,7 @@ button:disabled{opacity:.4;cursor:default}
     pa.needsUpdate = true;
     prevRect.visible = true;
   }
-  function hidePreviews() { prevLine.visible = false; prevRect.visible = false; }
+  function hidePreviews() { prevLine.visible = false; prevRect.visible = false; clearGuides(); }
 
   function setRay(e) {
     const b = dom.getBoundingClientRect();
@@ -2688,7 +2838,7 @@ button:disabled{opacity:.4;cursor:default}
     return hits.length ? hits[0].object.userData.handle : -1;
   }
 
-  function wallPoint(p) {
+  function wallPoint(p, al) {
     let x = snapV(p.x), z = snapV(p.z);
     if (chain && $('ortho').checked) {
       if (Math.abs(x - chain.x) >= Math.abs(z - chain.z)) z = chain.z; else x = chain.x;
@@ -2702,6 +2852,14 @@ button:disabled{opacity:.4;cursor:default}
       });
     });
     if (best) { x = best[0]; z = best[1]; }
+    if (al) {
+      if (best) clearGuides();
+      else {
+        let lx = false, lz = false;
+        if (chain && $('ortho').checked) { lx = Math.abs(x - chain.x) < 1e-9; lz = Math.abs(z - chain.z) < 1e-9; }
+        const r = alignPt({ x: x, z: z }, [], lx, lz, false); x = r.x; z = r.z;
+      }
+    }
     return { x: x, z: z };
   }
 
@@ -2730,6 +2888,8 @@ button:disabled{opacity:.4;cursor:default}
     const dx = o.x2 - o.x1, dz = o.z2 - o.z1;
     let s = ((hit.point.x - o.x1) * dx + (hit.point.z - o.z1) * dz) / L;
     s = Math.min(L - w / 2, Math.max(w / 2, snapV(s)));
+    if (guidesOn() && Math.abs(s - L / 2) < 0.12) s = L / 2;
+    clearGuides();
     pushHistory();
     o.op = o.op || [];
     o.op.push(kind === 'pintu' ? { k: 'pintu', st: st0, s: s, w: w, hh: sd.hh } : { k: 'jendela', st: st0, s: s, w: w, sill: sd.sill, hh: sd.hh });
@@ -2779,7 +2939,7 @@ button:disabled{opacity:.4;cursor:default}
     gest = { k: 'tool' };
 
     if (tool === 'wall') {
-      const q = wallPoint(p);
+      const q = wallPoint(p, true);
       if (!chain) {
         chain = { x: q.x, z: q.z };
         setPrevLine(q, q);
@@ -2794,7 +2954,7 @@ button:disabled{opacity:.4;cursor:default}
         updateStats(); scheduleSun();
       }
     } else if (tool === 'room') {
-      gest = { k: 'room', a: { x: snapV(p.x), z: snapV(p.z) }, b: null };
+      gest = { k: 'room', a: alignPt({ x: snapV(p.x), z: snapV(p.z) }, [], false, false, false), b: null };
     } else if (tool === 'pintu' || tool === 'jendela') {
       addOpening(tool, e);
     } else if (tool === 'teks') {
@@ -2808,7 +2968,9 @@ button:disabled{opacity:.4;cursor:default}
       addCalibPoint(p);
     } else if (tool === 'place' && placeKey) {
       pushHistory();
-      const o = addObj(makeFurn(placeKey, snapV(p.x), snapV(p.z), placeRot));
+      const pp = placePos(p);
+      clearGuides();
+      const o = addObj(makeFurn(placeKey, pp.x, pp.z, placeRot));
       select(o.id);
       updateStats(); scheduleSun();
     }
@@ -2833,30 +2995,33 @@ button:disabled{opacity:.4;cursor:default}
         const g = gest.orig;
         if (o.type === 'wall' || o.type === 'room') { o.x1 = g.x1 + dx; o.x2 = g.x2 + dx; o.z1 = g.z1 + dz; o.z2 = g.z2 + dz; }
         else { o.x = g.x + dx; o.z = g.z + dz; }
-        if (!gest.ex.length && o.type !== 'wall' && o.type !== 'room') {
-          let gx = null, gz = null;
-          objs.forEach(t => {
-            if (t === o || lvOf(t) !== curLv) return;
-            const c = (t.type === 'wall' || t.type === 'room') ? [(t.x1 + t.x2) / 2, (t.z1 + t.z2) / 2] : [t.x, t.z];
-            if (gx === null && Math.abs(c[0] - o.x) < 0.12) gx = c;
-            if (gz === null && Math.abs(c[1] - o.z) < 0.12) gz = c;
+        {
+          const exs = gest.ex || [];
+          exs.forEach(q => {
+            const t = q.o, hh = q.g;
+            if (t.type === 'wall' || t.type === 'room') { t.x1 = hh.x1 + dx; t.x2 = hh.x2 + dx; t.z1 = hh.z1 + dz; t.z2 = hh.z2 + dz; }
+            else { t.x = hh.x + dx; t.z = hh.z + dz; }
           });
-          if (gx) { o.x = gx[0]; setPrevLine({ x: gx[0], z: o.z }, { x: gx[0], z: gx[1] }); }
-          else if (gz) { o.z = gz[1]; setPrevLine({ x: o.x, z: gz[1] }, { x: gz[0], z: gz[1] }); }
-          else hidePreviews();
+          const movers = [o].concat(exs.map(q => q.o));
+          if (guidesOn() && !e.altKey) {
+            const r = alignCalc(unionBB(movers), movers, guideThr());
+            const sx = r.bx ? r.bx.s : 0, sz = r.bz ? r.bz.s : 0;
+            if (sx || sz) movers.forEach(m => shiftObj(m, sx, sz));
+            drawGuides(unionBB(movers), movers, r, true);
+          } else clearGuides();
+          rebuildObj(o);
+          exs.forEach(q => rebuildObj(q.o));
         }
-        rebuildObj(o);
-        (gest.ex || []).forEach(q => {
-          const t = q.o, h = q.g;
-          if (t.type === 'wall' || t.type === 'room') { t.x1 = h.x1 + dx; t.x2 = h.x2 + dx; t.z1 = h.z1 + dz; t.z2 = h.z2 + dz; }
-          else { t.x = h.x + dx; t.z = h.z + dz; }
-          rebuildObj(t);
-        });
         updateHandles();
       } else if (gest.k === 'handle') {
         const o = entries.get(selId).o;
         let q = { x: snapV(p.x), z: snapV(p.z) };
         if (o.type === 'wall') q = wallPointFor(o, gest.idx, p);
+        if (!e.altKey) {
+          let lx = false, lz = false;
+          if (o.type === 'wall' && $('ortho').checked) { const ot = gest.idx === 0 ? { x: o.x2, z: o.z2 } : { x: o.x1, z: o.z1 }; lx = Math.abs(q.x - ot.x) < 1e-6; lz = Math.abs(q.z - ot.z) < 1e-6; }
+          q = alignPt(q, [o], lx, lz, false);
+        } else clearGuides();
         if (!gest.moved) { gest.moved = true; pushHistory(); }
         if (o.type === 'wall') {
           if (gest.idx === 0) { o.x1 = q.x; o.z1 = q.z; } else { o.x2 = q.x; o.z2 = q.z; }
@@ -2872,7 +3037,7 @@ button:disabled{opacity:.4;cursor:default}
       } else if (gest.k === 'box') {
         gest.b = { x: p.x, z: p.z }; setPrevRect(gest.a, gest.b);
       } else if (gest.k === 'room') {
-        gest.b = { x: snapV(p.x), z: snapV(p.z) };
+        gest.b = alignPt({ x: snapV(p.x), z: snapV(p.z) }, [], false, false, true);
         setPrevRect(gest.a, gest.b);
         setHint('Ruangan ' + Math.abs(gest.b.x - gest.a.x).toFixed(2) + ' × ' + Math.abs(gest.b.z - gest.a.z).toFixed(2) + ' m');
       }
@@ -2881,16 +3046,18 @@ button:disabled{opacity:.4;cursor:default}
 
     // hover
     if (tool === 'wall') {
-      const q = wallPoint(p);
+      const q = wallPoint(p, true);
       lastQ = q;
       if (chain) {
         setPrevLine(chain, q);
         setHint('Panjang ' + Math.hypot(q.x - chain.x, q.z - chain.z).toFixed(2) + ' m · klik untuk lanjut, dobel klik / Enter untuk selesai');
       }
+    } else if (tool === 'pintu' || tool === 'jendela') {
+      openingGuide(e, tool);
     } else if (tool === 'ukur' && meas.length === 1) {
       setPrevLine(meas[0], wallPoint(p));
     } else if (tool === 'place' && ghost) {
-      ghostPos.x = snapV(p.x); ghostPos.z = snapV(p.z);
+      { const pp = placePos(p); ghostPos.x = pp.x; ghostPos.z = pp.z; }
       ghost.position.set(ghostPos.x, ghostY(), ghostPos.z);
       ghost.visible = true;
     }
@@ -2922,6 +3089,7 @@ button:disabled{opacity:.4;cursor:default}
     const g = gest;
     gest = null;
     controls.enabled = true;
+    if (!g || g.k !== 'tool') clearGuides();
     if (!g) return;
     if (g.k === 'maybe') {
       if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < 6) select(g.id);
