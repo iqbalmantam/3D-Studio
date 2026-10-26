@@ -934,12 +934,36 @@ button:disabled{opacity:.4;cursor:default}
       const dmPanel = woodM('#734820', 0.42);
       const hdlM = chrome();
       const ext = o.t / 2;
+      const glassW = o.sty === 'kaca' || o.sty === 'bening';
+      let glassPanel = null;
+      if (glassW) {
+        const fm = M(o.fc || '#9ca3a0', { metalness: 0.85, roughness: 0.34, envMapIntensity: 1.4 });
+        const gFrost = M('#e9edf3', { transparent: true, opacity: 0.8, roughness: 0.6, depthWrite: false });
+        const gLight = M('#e3e9f1', { transparent: true, opacity: 0.4, roughness: 0.35, depthWrite: false });
+        const gClear = M('#bfe6ff', { transparent: true, opacity: 0.3, roughness: 0.05, metalness: 0.15, depthWrite: false });
+        const frost = o.sty === 'kaca', fd = Math.max(0.05, Math.min(o.t, 0.09));
+        const bands = (frost ? [[0.06, 1.05, gFrost], [1.05, 1.25, gClear], [1.25, 2.1, gFrost], [2.1, o.h, gLight]] : [[0.06, o.h, gClear]]).filter(q => q[0] < o.h);
+        const rails = (frost ? [[0.03, 0.06], [1.05, 0.04], [1.25, 0.04], [2.1, 0.07], [o.h - 0.03, 0.06]] : [[0.03, 0.06], [2.1, 0.07], [o.h - 0.03, 0.06]]).filter(q => q[0] < o.h);
+        const nP = Math.max(1, Math.round((L + 2 * ext) / 1.2)), stp = (L + 2 * ext) / nP, posts = [];
+        for (let i = 0; i <= nP; i++) posts.push(-ext + i * stp);
+        const gb = (p0, p1, s0, s1, m, th, ns) => {
+          if (p1 - p0 < 1e-4 || s1 - s0 < 1e-4) return;
+          const mm = box(p1 - p0, s1 - s0, th, (p0 + p1) / 2 - L / 2, (s0 + s1) / 2, 0, m);
+          if (ns) mm.castShadow = false;
+        };
+        glassPanel = (a, b, y0, y1) => {
+          bands.forEach(bd => gb(a, b, Math.max(y0, bd[0]), Math.min(y1, bd[1]), bd[2], 0.012, true));
+          rails.forEach(r => gb(a, b, Math.max(y0, r[0] - r[1] / 2), Math.min(y1, r[0] + r[1] / 2), fm, fd));
+          posts.forEach(px => { if (px + 0.02 > a && px - 0.02 < b) gb(Math.max(a, px - 0.02), Math.min(b, px + 0.02), y0, y1, fm, fd); });
+        };
+      }
       const seg = (a, b, y0, y1, m, th) => {
         if (b - a < 1e-4 || y1 - y0 < 1e-4) return;
+        if (glassW && m === wm) { glassPanel(a, b, y0, y1); return; }
         box(b - a, y1 - y0, th || o.t, (a + b) / 2 - L / 2, (y0 + y1) / 2, 0, (m === wm && wm2) ? [wm, wm, wm, capM, wm, wm2] : m);
       };
       const baseboard = (a, b) => {
-        if (b - a < 0.04) return;
+        if (b - a < 0.04 || glassW) return;
         seg(a, b, 0, 0.095, fr, o.t + 0.022);
         seg(a, b, 0.095, 0.11, fr, o.t + 0.012);
       };
@@ -1792,7 +1816,7 @@ button:disabled{opacity:.4;cursor:default}
   // =====================================================================
   function makeWall(x1, z1, x2, z2, op) {
     return { id: nextId++, type: 'wall', x1: x1, z1: z1, x2: x2, z2: z2,
-      t: +$('tebal').value || 0.15, h: +$('tinggiDef').value || 3, color: '#e8e4dc', op: op || [] };
+      t: +$('tebal').value || 0.15, h: +$('tinggiDef').value || 3, color: '#e8e4dc', op: op || [], sty: ($('stWall') && $('stWall').value) || '' };
   }
   function makeRoom(x1, z1, x2, z2, color, label) {
     return { id: nextId++, type: 'room', x1: x1, z1: z1, x2: x2, z2: z2, color: color, label: label, ls: 0.7 };
@@ -1959,6 +1983,14 @@ button:disabled{opacity:.4;cursor:default}
       });
       num(box, 'Tebal (m)', o.t, 0.05, 2, 0.01, v => { o.t = v; });
       num(box, 'Tinggi (m)', o.h, 0.3, 30, 0.1, v => { o.h = v; });
+      {
+        const sm = document.createElement('select');
+        [['', 'Dinding padat'], ['kaca', 'Partisi kaca buram (rangka stainless)'], ['bening', 'Partisi kaca bening']].forEach(a2 => { const e2 = document.createElement('option'); e2.value = a2[0]; e2.textContent = a2[1]; sm.appendChild(e2); });
+        sm.value = o.sty || '';
+        sm.addEventListener('change', () => commit(o, () => { o.sty = sm.value; if (o.sty && o.t > 0.12) o.t = 0.1; }));
+        field(box, 'Model dinding', sm, true);
+      }
+      if (o.sty) col(box, 'Warna rangka', o.fc || '#9ca3a0', v => { o.fc = v; });
       col(box, 'Warna sisi A', o.color, v => { o.color = v; });
       col(box, 'Warna sisi B', o.c2 || o.color, v => { o.c2 = v; });
       (o.op || []).forEach((p, i) => {
@@ -2537,7 +2569,7 @@ button:disabled{opacity:.4;cursor:default}
         const xc = X0 + r.w * cs / 2;
         w = makeWall(xc, Z0 + t / 2, xc, Z0 + r.h * cs - t / 2);
       }
-      w.t = t; w.h = hh; w.auto = true;
+      w.t = t; w.h = hh; w.auto = true; w.sty = '';
       addObj(w);
     });
     updateStats(); scheduleSun();
@@ -3434,6 +3466,8 @@ button:disabled{opacity:.4;cursor:default}
   $('tools').insertAdjacentHTML('afterend', '<label for="stDoor" style="margin-top:10px">Model pintu (alat 🚪)</label><select id="stDoor"></select><label for="stWin">Model jendela (alat 🪟)</label><select id="stWin"></select><div class="foot">Model juga bisa diganti per bukaan di panel properti dinding. Objek menggantung (TV dinding, AC, lukisan, lampu gantung) diatur tingginya lewat "Elevasi dari lantai".</div>');
   DOOR_ST.forEach(a2 => { const e2 = document.createElement('option'); e2.value = a2[0]; e2.textContent = a2[1]; $('stDoor').appendChild(e2); });
   WIN_ST.forEach(a2 => { const e2 = document.createElement('option'); e2.value = a2[0]; e2.textContent = a2[1]; $('stWin').appendChild(e2); });
+  $('stDoor').previousElementSibling.insertAdjacentHTML('beforebegin', '<label for="stWall" style="margin-top:10px">Model dinding baru (alat 🧱)</label><select id="stWall"><option value="">Dinding padat</option><option value="kaca">Partisi kaca buram (rangka stainless)</option><option value="bening">Partisi kaca bening</option></select>');
+  $('stWall').addEventListener('change', () => { if ($('stWall').value) { $('tebal').value = 0.1; flash('Dinding baru memakai partisi kaca (tebal 10 cm).'); } });
   $('btnShare').onclick = shareLink;
   $('glbFile').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
